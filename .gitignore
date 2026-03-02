@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Environment
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data outputs (regenerable)
+data/output/*.csv
+
+# Byte-compiled
+*.pyc
+
+# Model cache
+.cache/
+
+# Internal documentation (not for distribution)
+knowledge/
+
+# Claude Code
+.claude/
+
+# Windows artifacts
+nul
+
+# Testing
+.pytest_cache/
+htmlcov/
+.coverage
