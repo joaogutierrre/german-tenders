@@ -32,7 +32,10 @@ dev = [
 ]
 
 [project.scripts]
-tender-cli = "cli:app"
+tenderx = "cli:app"
+
+[tool.setuptools]
+py-modules = ["cli"]
 
 [tool.setuptools.packages.find]
 include = ["src*"]

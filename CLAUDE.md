@@ -448,7 +448,7 @@ Use Typer with app groups:
 
 ```python
 import typer
-app = typer.Typer(name="tender-cli", help="German Tenders Intelligence Platform")
+app = typer.Typer(name="tenderx", help="German Tenders Intelligence Platform")
 
 # Groups
 ingest_app = typer.Typer(help="Tender ingestion commands")
@@ -464,19 +464,19 @@ app.add_typer(docs_app, name="docs")
 
 ### Required Commands
 ```
-tender-cli ingest run --days 7
-tender-cli ingest run --date 2026-02-28
-tender-cli search query "IT consulting public administration"
-tender-cli search query --cpv 72000000 --nuts DE212 --max-value 500000
-tender-cli orgs load --csv organizations.csv
-tender-cli orgs match --org-id <uuid>
-tender-cli orgs match --all
-tender-cli docs analyze
-tender-cli docs download --supplier <name> --limit 100
-tender-cli tender show <uuid>
-tender-cli stats
-tender-cli purge                        # Delete ALL data (DB + MinIO + files) with confirmation
-tender-cli purge --yes                  # Skip confirmation prompt
+tenderx ingest run --days 7
+tenderx ingest run --date 2026-02-28
+tenderx search query "IT consulting public administration"
+tenderx search query --cpv 72000000 --nuts DE212 --max-value 500000
+tenderx orgs load --csv organizations.csv
+tenderx orgs match --org-id <uuid>
+tenderx orgs match --all
+tenderx docs analyze
+tenderx docs download --supplier <name> --limit 100
+tenderx tender show <uuid>
+tenderx stats
+tenderx purge                        # Delete ALL data (DB + MinIO + files) with confirmation
+tenderx purge --yes                  # Skip confirmation prompt
 ```
 
 ---
@@ -503,7 +503,7 @@ Follow this order. Do NOT skip ahead. Each step must work before moving to the n
 4. Create parser logic to extract structured fields from API response
 5. Create `src/db/repositories.py` with TenderRepository.upsert
 6. Create `src/ingestion/tender_pipeline.py` — orchestrate: fetch → parse → store
-7. Wire up basic CLI: `tender-cli ingest run --days 7`
+7. Wire up basic CLI: `tenderx ingest run --days 7`
 8. **VERIFY:** Run ingestion and confirm tenders appear in PostgreSQL
 
 ### Step 3: AI Enrichment
@@ -516,7 +516,7 @@ Follow this order. Do NOT skip ahead. Each step must work before moving to the n
 ### Step 4: Organizations
 1. Create `src/organizations/csv_loader.py` — parse CSV, handle encoding, missing fields
 2. Create repository methods for organizations
-3. Wire up CLI: `tender-cli orgs load --csv organizations.csv`
+3. Wire up CLI: `tenderx orgs load --csv organizations.csv`
 4. **VERIFY:** Organizations loaded in DB with tax_id, name, website
 
 ### Step 5: Search & Embeddings
@@ -526,13 +526,13 @@ Follow this order. Do NOT skip ahead. Each step must work before moving to the n
 4. Create `src/search/semantic.py` — vector similarity search
 5. Create `src/search/structured.py` — SQL filters (cpv, nuts, price, date, issuer)
 6. Create `src/search/hybrid.py` — combine semantic + structured
-7. Wire up CLI: `tender-cli search query "..."`
+7. Wire up CLI: `tenderx search query "..."`
 8. **VERIFY:** Search returns relevant results for various queries
 
 ### Step 6: Matching
 1. Create `src/matching/query_generator.py` — use Ollama to generate 5 queries per org
 2. Create `src/matching/matcher.py` — run queries through hybrid search, store results
-3. Wire up CLI: `tender-cli orgs match --org-id <id>` and `--all`
+3. Wire up CLI: `tenderx orgs match --org-id <id>` and `--all`
 4. **VERIFY:** match_results table populated with scored results
 
 ### Step 7: Document Analysis & Storage
@@ -540,12 +540,12 @@ Follow this order. Do NOT skip ahead. Each step must work before moving to the n
 2. Output CSV to `data/output/supplier_analysis.csv`
 3. Create `src/documents/storage.py` — MinIO client wrapper
 4. Create `src/documents/downloader.py` — download from top supplier portal
-5. Wire up CLI: `tender-cli docs analyze` and `tender-cli docs download`
+5. Wire up CLI: `tenderx docs analyze` and `tenderx docs download`
 6. **VERIFY:** CSV generated, documents downloaded and stored in MinIO, linked in DB
 
 ### Step 8: CLI Polish & Stats
-1. Add `tender-cli tender show <id>` — display full tender details
-2. Add `tender-cli stats` — total tenders, orgs, docs, match results, date range
+1. Add `tenderx tender show <id>` — display full tender details
+2. Add `tenderx stats` — total tenders, orgs, docs, match results, date range
 3. Add rich formatting (tables, colors) to all CLI output
 4. **VERIFY:** All CLI commands work and look professional
 

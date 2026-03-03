@@ -85,42 +85,42 @@ bash scripts/setup.sh
 #   curl http://localhost:11434/api/pull -d '{"name":"gemma3:4b"}'
 
 # 6. Ingest tenders (last 3 days, with AI enrichment)
-tender-cli ingest run --days 3
+tenderx ingest run --days 3
 
 # 7. Load organizations
-tender-cli orgs load --csv organizations.csv
+tenderx orgs load --csv organizations.csv
 
 # 8. Search tenders
-tender-cli search query "IT consulting public administration"
+tenderx search query "IT consulting public administration"
 
 # 9. Match organizations to tenders
-tender-cli orgs match --all
+tenderx orgs match --all
 
 # 10. View statistics
-tender-cli stats
+tenderx stats
 ```
 
 ## CLI Reference
 
 | Command | Description |
 |---|---|
-| `tender-cli ingest run --days N` | Ingest tenders from last N days |
-| `tender-cli ingest run --date YYYY-MM-DD` | Ingest tenders for a specific date |
-| `tender-cli ingest run --no-enrich` | Ingest without AI enrichment |
-| `tender-cli ingest enrich` | Run AI enrichment on unenriched tenders |
-| `tender-cli search query "..."` | Semantic + structured search |
-| `tender-cli search query --cpv 72000000` | Filter by CPV code |
-| `tender-cli search query --nuts DE212` | Filter by NUTS region |
-| `tender-cli search query --max-value 500000` | Filter by value |
-| `tender-cli orgs load --csv PATH` | Load organizations from CSV |
-| `tender-cli orgs match --org-id UUID` | Match one organization |
-| `tender-cli orgs match --all` | Match all organizations |
-| `tender-cli docs analyze` | Analyze document supplier portals |
-| `tender-cli docs download --supplier DOMAIN` | Download documents from portal |
-| `tender-cli tender show UUID` | Show full tender details |
-| `tender-cli stats` | System statistics overview |
-| `tender-cli purge` | Delete ALL data (DB + MinIO + files) with confirmation |
-| `tender-cli purge --yes` | Purge without confirmation prompt |
+| `tenderx ingest run --days N` | Ingest tenders from last N days |
+| `tenderx ingest run --date YYYY-MM-DD` | Ingest tenders for a specific date |
+| `tenderx ingest run --no-enrich` | Ingest without AI enrichment |
+| `tenderx ingest enrich` | Run AI enrichment on unenriched tenders |
+| `tenderx search query "..."` | Semantic + structured search |
+| `tenderx search query --cpv 72000000` | Filter by CPV code |
+| `tenderx search query --nuts DE212` | Filter by NUTS region |
+| `tenderx search query --max-value 500000` | Filter by value |
+| `tenderx orgs load --csv PATH` | Load organizations from CSV |
+| `tenderx orgs match --org-id UUID` | Match one organization |
+| `tenderx orgs match --all` | Match all organizations |
+| `tenderx docs analyze` | Analyze document supplier portals |
+| `tenderx docs download --supplier DOMAIN` | Download documents from portal |
+| `tenderx tender show UUID` | Show full tender details |
+| `tenderx stats` | System statistics overview |
+| `tenderx purge` | Delete ALL data (DB + MinIO + files) with confirmation |
+| `tenderx purge --yes` | Purge without confirmation prompt |
 
 ## Data Source
 
