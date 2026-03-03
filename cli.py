@@ -5,8 +5,12 @@ import logging
 from datetime import date, datetime
 
 import typer
+from rich.align import Align
 from rich.console import Console
+from rich.panel import Panel
+from rich.rule import Rule
 from rich.table import Table
+from rich.text import Text
 
 logging.basicConfig(
     level=logging.INFO,
@@ -16,11 +20,111 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = typer.Typer(
-    name="tender-cli",
+    name="tenderx",
     help="German Tenders Intelligence Platform",
-    no_args_is_help=True,
+    no_args_is_help=False,
+    rich_markup_mode="rich",
 )
 console = Console()
+
+
+# ============================================================
+# Welcome screen
+# ============================================================
+
+def _build_banner() -> Text:
+    """Build the tenderX ASCII art banner with color-split styling.
+
+    The 'tender' portion renders in bold white; the 'X' portion
+    renders in bold bright_blue, giving a branded terminal aesthetic.
+    """
+    parts_tender = [
+        "   _                  _           ",
+        "  | |_ ___ _ __   __| | ___ _ __ ",
+        "  | __/ _ \\ '_ \\ / _` |/ _ \\ '__|",
+        "  | ||  __/ | | | (_| |  __/ |   ",
+        "   \\__\\___|_| |_|\\__,_|\\___|_|  ",
+    ]
+    parts_x = [
+        " __  __",
+        " \\ \\/ /",
+        "  \\  / ",
+        "  /  \\ ",
+        " /_/\\_\\",
+    ]
+    banner = Text()
+    for i, (tp, xp) in enumerate(zip(parts_tender, parts_x)):
+        banner.append(tp, style="bold white")
+        banner.append(xp, style="bold bright_blue")
+        if i < len(parts_tender) - 1:
+            banner.append("\n")
+    return banner
+
+
+def _build_version_line() -> Text:
+    """Build the version and subtitle line."""
+    line = Text()
+    line.append("v0.1.0", style="dim bright_blue")
+    line.append("  |  ", style="dim")
+    line.append("German Procurement Intelligence Platform", style="dim")
+    return line
+
+
+def show_welcome_screen() -> None:
+    """Display the branded tenderX welcome screen with quick-start menu."""
+    console.print()
+
+    # ASCII art banner
+    console.print(Align.center(_build_banner()))
+    console.print()
+
+    # Version + tagline
+    console.print(Align.center(_build_version_line()))
+    console.print()
+
+    # Separator
+    console.print(Rule(characters="-", style="bright_blue"))
+    console.print()
+
+    # Quick-start commands
+    cmds = Text()
+    cmds.append("  Quick Start\n\n", style="bold bright_blue")
+
+    menu_items = [
+        ("tenderx ingest run", "Ingest tenders from the procurement API"),
+        ("tenderx ingest enrich", "Run AI enrichment on stored tenders"),
+        ("tenderx search query", "Semantic + structured tender search"),
+        ("tenderx orgs load", "Load organizations from CSV"),
+        ("tenderx orgs match --all", "Match organizations to relevant tenders"),
+        ("tenderx stats", "Show system statistics"),
+        ("tenderx docs analyze", "Analyze document supplier portals"),
+        ("tenderx docs download", "Download documents from supplier portal"),
+    ]
+
+    max_cmd_len = max(len(cmd) for cmd, _ in menu_items)
+    for cmd, desc in menu_items:
+        padding = " " * (max_cmd_len - len(cmd) + 4)
+        cmds.append(f"  {cmd}", style="bold")
+        cmds.append(f"{padding}{desc}\n", style="dim")
+
+    cmds.append("\n")
+    help_cmd = "tenderx --help"
+    padding = " " * (max_cmd_len - len(help_cmd) + 4)
+    cmds.append(f"  {help_cmd}", style="bold yellow")
+    cmds.append(f"{padding}Show all commands and detailed usage\n", style="dim")
+
+    console.print(
+        Panel(cmds, border_style="bright_blue", expand=False, padding=(1, 2))
+    )
+    console.print()
+
+
+@app.callback(invoke_without_command=True)
+def main(ctx: typer.Context) -> None:
+    """German Tenders Intelligence Platform."""
+    if ctx.invoked_subcommand is None:
+        show_welcome_screen()
+
 
 # --- Command groups ---
 ingest_app = typer.Typer(help="Tender ingestion commands")
@@ -368,7 +472,6 @@ def tender_show(
 ) -> None:
     """Show detailed information about a tender."""
     from uuid import UUID
-    from rich.panel import Panel
 
     async def _run() -> None:
         from src.db.repositories import TenderRepository
