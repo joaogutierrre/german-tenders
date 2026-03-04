@@ -2,6 +2,8 @@
 
 import asyncio
 import logging
+import shlex
+import sys
 from datetime import date, datetime
 
 import typer
@@ -119,11 +121,97 @@ def show_welcome_screen() -> None:
     console.print()
 
 
+# ============================================================
+# Interactive shell (REPL)
+# ============================================================
+
+_in_shell = False
+
+
 @app.callback(invoke_without_command=True)
 def main(ctx: typer.Context) -> None:
     """German Tenders Intelligence Platform."""
-    if ctx.invoked_subcommand is None:
+    if ctx.invoked_subcommand is None and not _in_shell:
         show_welcome_screen()
+
+
+def _run_command(args: list[str]) -> None:
+    """Dispatch a command to the Typer app from the interactive shell."""
+    try:
+        app(args, standalone_mode=True)
+    except SystemExit:
+        pass
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Interrupted.[/yellow]")
+
+
+def interactive_shell() -> None:
+    """Run the interactive tenderX shell (REPL).
+
+    Shows a welcome screen, then loops reading commands from the user
+    until 'exit' or 'quit' is entered.  Each command is dispatched to
+    the Typer app as if it were typed on the command line.
+    """
+    global _in_shell
+    _in_shell = True
+
+    show_welcome_screen()
+    console.print("[dim]  Type 'help' for commands, 'exit' to quit.[/dim]\n")
+
+    while True:
+        try:
+            user_input = console.input(
+                "[bold bright_blue]tenderx[/bold bright_blue] > "
+            ).strip()
+        except EOFError:
+            console.print()
+            break
+        except KeyboardInterrupt:
+            console.print()
+            continue
+
+        if not user_input:
+            continue
+
+        lower = user_input.lower()
+        if lower in ("exit", "quit"):
+            break
+        if lower == "clear":
+            console.clear()
+            continue
+        if lower == "help":
+            _run_command(["--help"])
+            continue
+
+        try:
+            args = shlex.split(user_input)
+        except ValueError as e:
+            console.print(f"[red]Invalid input: {e}[/red]")
+            continue
+
+        # Allow user to type full command with 'tenderx' prefix
+        if args and args[0] == "tenderx":
+            args = args[1:]
+
+        if not args:
+            continue
+
+        _run_command(args)
+
+    _in_shell = False
+    console.print("[dim]Goodbye![/dim]\n")
+
+
+def _entry_point() -> None:
+    """Entry point for the tenderx command.
+
+    No arguments: start the interactive shell.
+    With arguments: run as a standard CLI command.
+    """
+    if len(sys.argv) <= 1:
+        interactive_shell()
+    else:
+        app()
 
 
 # --- Command groups ---
@@ -802,4 +890,4 @@ def purge(
 
 
 if __name__ == "__main__":
-    app()
+    _entry_point()
