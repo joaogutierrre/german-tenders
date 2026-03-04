@@ -32,7 +32,7 @@ dev = [
 ]
 
 [project.scripts]
-tenderx = "cli:app"
+tenderx = "cli:_entry_point"
 
 [tool.setuptools]
 py-modules = ["cli"]
