@@ -222,6 +222,31 @@ Use SQLAlchemy 2.0 with `mapped_column`. All IDs are UUID. Use `pgvector` for em
 - **Error handling:** never swallow exceptions silently. Log and re-raise or handle gracefully.
 - **No print statements** — use logger or Typer's `rich` console
 
+### Internationalization (i18n)
+
+All user-facing strings in `cli.py` (and any future CLI modules) **must** use the `tr()` function
+from `src.i18n` (imported as `from src.i18n import t as tr`). Never hardcode user-visible English strings.
+
+```python
+# CORRECT
+from src.i18n import t as tr
+console.print(tr("ingest.done", fetched=10, inserted=5, updated=3, errors=0, duration=2.1))
+
+# WRONG — hardcoded string
+console.print(f"[green]Done![/green] {result.total_fetched} fetched, ...")
+```
+
+**Rules:**
+- Add new keys to `src/i18n/en_us.py` first (canonical reference).
+- Add corresponding translations to **all** locale files: `pt_br.py`, `pt_pt.py`, `de_de.py`.
+- Use dot-separated hierarchical key names: `section.descriptive_name`.
+- Rich markup (`[green]`, `[bold]`, etc.) goes **inside** the translation value, not in the `console.print()` call.
+- Format placeholders use Python `.format()` syntax: `{count}`, `{name}`, etc.
+- Run `pytest tests/test_i18n.py::TestCatalogCompleteness` to verify all locales have the same keys.
+- The ASCII art banner is NOT translated.
+- Language preference is stored in `~/.tenderx/config.json`.
+- Available locales: en-US (default), pt-BR, pt-PT, de-DE.
+
 ### Imports
 ```python
 # Standard library
@@ -236,6 +261,7 @@ from sentence_transformers import SentenceTransformer
 # Local
 from src.config import settings
 from src.db.models import Tender
+from src.i18n import t as tr
 ```
 
 ### Configuration Pattern
@@ -475,6 +501,9 @@ tenderx docs analyze
 tenderx docs download --supplier <name> --limit 100
 tenderx tender show <uuid>
 tenderx stats
+tenderx stats --verbose              # Detailed descriptions for each metric
+tenderx lang                         # Change CLI language (shows menu)
+tenderx lang --default               # Reset to English (en-US)
 tenderx purge                        # Delete ALL data (DB + MinIO + files) with confirmation
 tenderx purge --yes                  # Skip confirmation prompt
 ```
