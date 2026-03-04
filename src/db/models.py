@@ -186,6 +186,28 @@ class TenderDocument(Base):
         return f"<TenderDocument {self.filename!r}>"
 
 
+class BackgroundJob(Base):
+    """A background job that runs in a separate process."""
+
+    __tablename__ = "background_jobs"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    job_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending")
+    params: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    progress_current: Mapped[int] = mapped_column(Integer, default=0)
+    progress_total: Mapped[int | None] = mapped_column(Integer)
+    result_summary: Mapped[dict | None] = mapped_column(JSON)
+    error_message: Mapped[str | None] = mapped_column(Text)
+    pid: Mapped[int | None] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    started_at: Mapped[datetime | None] = mapped_column(DateTime)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+    def __repr__(self) -> str:
+        return f"<BackgroundJob {self.job_type} status={self.status}>"
+
+
 class MatchResult(Base):
     """Result of matching an organization to a tender via search."""
 

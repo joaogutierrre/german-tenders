@@ -1,12 +1,14 @@
 """Data access layer — all database operations go through repositories."""
 
 import logging
+from datetime import datetime, timezone
 from uuid import UUID
 
-from sqlalchemy import delete, func, select, text
+from sqlalchemy import delete, func, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.db.models import (
+    BackgroundJob,
     Issuer,
     MatchResult,
     Organization,
@@ -333,3 +335,74 @@ class MatchResultRepository:
             select(func.count(MatchResult.id))
         )
         return result.scalar_one()
+
+
+class BackgroundJobRepository:
+    """Data access for background jobs."""
+
+    def __init__(self, session: AsyncSession) -> None:
+        self.session = session
+
+    async def create(self, job_type: str, params: dict) -> BackgroundJob:
+        """Create a new background job with status=pending."""
+        job = BackgroundJob(job_type=job_type, params=params, status="pending")
+        self.session.add(job)
+        await self.session.flush()
+        return job
+
+    async def find_by_id(self, job_id: UUID) -> BackgroundJob | None:
+        """Find a background job by ID."""
+        result = await self.session.execute(
+            select(BackgroundJob).where(BackgroundJob.id == job_id)
+        )
+        return result.scalar_one_or_none()
+
+    async def update_status(
+        self, job_id: UUID, status: str, **fields: object
+    ) -> None:
+        """Update job status and optional fields (pid, started_at, etc)."""
+        values: dict[str, object] = {"status": status}
+        values.update(fields)
+        await self.session.execute(
+            update(BackgroundJob)
+            .where(BackgroundJob.id == job_id)
+            .values(**values)
+        )
+
+    async def update_progress(
+        self, job_id: UUID, current: int, total: int | None = None
+    ) -> None:
+        """Update progress counters."""
+        values: dict[str, object] = {"progress_current": current}
+        if total is not None:
+            values["progress_total"] = total
+        await self.session.execute(
+            update(BackgroundJob)
+            .where(BackgroundJob.id == job_id)
+            .values(**values)
+        )
+
+    async def find_all(self, status_filter: str | None = None) -> list[BackgroundJob]:
+        """List jobs, optionally filtered by status, newest first."""
+        stmt = select(BackgroundJob).order_by(BackgroundJob.created_at.desc())
+        if status_filter:
+            stmt = stmt.where(BackgroundJob.status == status_filter)
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def find_active(self) -> list[BackgroundJob]:
+        """Find jobs with status pending or running."""
+        result = await self.session.execute(
+            select(BackgroundJob)
+            .where(BackgroundJob.status.in_(["pending", "running"]))
+            .order_by(BackgroundJob.created_at.desc())
+        )
+        return list(result.scalars().all())
+
+    async def count_by_status(self) -> dict[str, int]:
+        """Return counts grouped by status."""
+        result = await self.session.execute(
+            select(BackgroundJob.status, func.count(BackgroundJob.id))
+            .group_by(BackgroundJob.status)
+        )
+        return {row[0]: row[1] for row in result.fetchall()}
