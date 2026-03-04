@@ -2,6 +2,7 @@
 
 import logging
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from src.ai.llm_client import LLMError, OllamaClient
@@ -34,11 +35,16 @@ class EnrichmentPipeline:
     def __init__(self, client: OllamaClient | None = None) -> None:
         self.client = client or OllamaClient()
 
-    async def run(self, limit: int | None = None) -> EnrichmentResult:
+    async def run(
+        self,
+        limit: int | None = None,
+        on_progress: Callable[[int, int], None] | None = None,
+    ) -> EnrichmentResult:
         """Enrich a batch of unenriched tenders.
 
         Args:
             limit: Maximum tenders to process. Defaults to ingestion_batch_size.
+            on_progress: Optional callback(current, total) called after each tender.
         """
         batch_size = limit or settings.ingestion_batch_size
         start = time.time()
@@ -81,10 +87,14 @@ class EnrichmentPipeline:
                         tender.id,
                         summary[:60],
                     )
+                    if on_progress:
+                        on_progress(result.processed, len(tenders))
                 except LLMError as exc:
                     result.failed += 1
                     result.errors.append(f"{tender.id}: {exc}")
                     logger.warning("LLM error for tender %s: %s", tender.id, exc)
+                    if on_progress:
+                        on_progress(result.processed, len(tenders))
                 except Exception as exc:
                     result.failed += 1
                     result.errors.append(f"{tender.id}: {exc}")
@@ -93,6 +103,8 @@ class EnrichmentPipeline:
                         tender.id,
                         exc,
                     )
+                    if on_progress:
+                        on_progress(result.processed, len(tenders))
 
         result.duration_seconds = time.time() - start
         return result

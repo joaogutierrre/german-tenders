@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
@@ -41,13 +42,17 @@ class DocumentDownloader:
         self.storage = storage or DocumentStorage()
 
     async def download_for_supplier(
-        self, domain: str, limit: int = 100
+        self,
+        domain: str,
+        limit: int = 100,
+        on_progress: Callable[[int, int], None] | None = None,
     ) -> DownloadResult:
         """Download documents from tenders hosted on a specific supplier domain.
 
         Args:
             domain: The supplier domain to process.
             limit: Maximum tenders to process.
+            on_progress: Optional callback(current, total) called after each tender.
 
         Returns:
             DownloadResult with counts and errors.
@@ -89,6 +94,8 @@ class DocumentDownloader:
                 except Exception as exc:
                     result.errors.append(f"Tender {tender.id}: {exc}")
                     logger.warning("Error processing tender %s: %s", tender.id, exc)
+                if on_progress:
+                    on_progress(result.tenders_processed, len(tenders))
 
         return result
 
