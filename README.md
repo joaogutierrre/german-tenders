@@ -42,7 +42,7 @@ A procurement intelligence MVP that ingests German public tenders from [oeffentl
 
 | Component | Technology |
 |---|---|
-| Language | Python 3.11+ |
+| Language | Python 3.12+ |
 | Database | PostgreSQL 16 + pgvector |
 | Object Storage | MinIO (S3-compatible) |
 | Embeddings | `paraphrase-multilingual-MiniLM-L12-v2` (384-dim, CPU) |
@@ -54,7 +54,7 @@ A procurement intelligence MVP that ingests German public tenders from [oeffentl
 
 ## Prerequisites
 
-- Python 3.11+
+- Python 3.12+
 - Docker & Docker Compose
 - ~8 GB RAM (for Ollama model)
 - ~2 GB disk (for embedding model + Ollama)
@@ -64,6 +64,7 @@ A procurement intelligence MVP that ingests German public tenders from [oeffentl
 ```bash
 # 1. Clone and enter project
 cd german-tenders
+# (or: git clone https://github.com/joaogutierrre/german-tenders.git && cd german-tenders)
 
 # 2. Create virtual environment
 python -m venv .venv
@@ -84,21 +85,28 @@ bash scripts/setup.sh
 #   alembic upgrade head
 #   curl http://localhost:11434/api/pull -d '{"name":"gemma3:4b"}'
 
-# 6. Ingest tenders (last 3 days, with AI enrichment)
+# 6. Launch the interactive shell (first run shows a language selection menu)
+tenderx
+# — or run individual commands directly —
+
+# 7. Ingest tenders (last 3 days, with AI enrichment)
 tenderx ingest run --days 3
 
-# 7. Load organizations
+# 8. Load organizations
 tenderx orgs load --csv organizations.csv
 
-# 8. Search tenders
+# 9. Search tenders
 tenderx search query "IT consulting public administration"
 
-# 9. Match organizations to tenders
+# 10. Match organizations to tenders
 tenderx orgs match --all
 
-# 10. View statistics
+# 11. View statistics
 tenderx stats
+tenderx stats --verbose   # adds a description column for each metric
 ```
+
+> **pgAdmin** is available at http://localhost:5050 (`admin@tenderx.dev` / `admin`) for database inspection.
 
 ## CLI Reference
 
@@ -107,6 +115,7 @@ tenderx stats
 | `tenderx ingest run --days N` | Ingest tenders from last N days |
 | `tenderx ingest run --date YYYY-MM-DD` | Ingest tenders for a specific date |
 | `tenderx ingest run --no-enrich` | Ingest without AI enrichment |
+| `tenderx ingest run --enrich-bg` | Offload enrichment to a background job |
 | `tenderx ingest enrich` | Run AI enrichment on unenriched tenders |
 | `tenderx search query "..."` | Semantic + structured search |
 | `tenderx search query --cpv 72000000` | Filter by CPV code |
@@ -119,6 +128,10 @@ tenderx stats
 | `tenderx docs download --supplier DOMAIN` | Download documents from portal |
 | `tenderx tender show UUID` | Show full tender details |
 | `tenderx stats` | System statistics overview |
+| `tenderx stats --verbose` | Stats with metric descriptions |
+| `tenderx dashboard` | Live monitor for background jobs |
+| `tenderx lang` | Change CLI language interactively |
+| `tenderx lang --default` | Reset language to English (en-US) |
 | `tenderx purge` | Delete ALL data (DB + MinIO + files) with confirmation |
 | `tenderx purge --yes` | Purge without confirmation prompt |
 
@@ -140,6 +153,7 @@ Each daily export contains ~19 normalized CSV files (~70 notices/day). Data avai
 - **tender_lots** — Individual lots within a tender
 - **tender_documents** — Documents stored in MinIO
 - **match_results** — Organization-to-tender matches with similarity scores
+- **background_jobs** — Long-running tasks (enrichment, downloads) tracked by the `dashboard` command
 
 ## Architecture Decisions
 
@@ -168,7 +182,7 @@ pytest tests/test_enrichment.py -v
 pytest tests/ --cov=src --cov-report=term-missing
 ```
 
-138 unit tests covering: configuration, models, prompts, LLM client, enrichment pipeline, CSV loading, search filters, cosine similarity, embeddings, query generation, matching, document analysis. Integration tests (12+) auto-skip if Docker PostgreSQL is unavailable.
+177 unit tests covering: configuration, models, prompts, LLM client, enrichment pipeline, CSV loading, search filters, cosine similarity, embeddings, query generation, matching, document analysis, i18n catalog completeness and locale switching. Integration tests auto-skip if Docker PostgreSQL is unavailable.
 
 ## Known Limitations
 
@@ -186,10 +200,19 @@ src/
 ├── ai/
 │   ├── llm_client.py      # Ollama wrapper
 │   └── prompts.py         # Centralized prompt templates
+├── background/
+│   ├── manager.py         # Spawn & track background jobs via multiprocessing
+│   └── worker.py          # Worker process (enrichment, docs_download)
 ├── db/
-│   ├── models.py          # 6 SQLAlchemy models
+│   ├── models.py          # 7 SQLAlchemy models (incl. BackgroundJob)
 │   ├── session.py         # Async engine + session
 │   └── repositories.py    # Data access layer
+├── i18n/
+│   ├── __init__.py        # tr() lookup, locale save/load
+│   ├── en_us.py           # English (canonical)
+│   ├── pt_br.py           # Brazilian Portuguese
+│   ├── pt_pt.py           # European Portuguese
+│   └── de_de.py           # German
 ├── ingestion/
 │   ├── api_client.py      # oeffentlichevergabe.de API client
 │   ├── parser.py          # CSV ZIP parser
