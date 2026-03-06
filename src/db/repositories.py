@@ -33,6 +33,10 @@ class IssuerRepository:
         **kwargs: str | None,
     ) -> Issuer:
         """Insert or update an issuer by org_identifier or name."""
+        # Treat empty string as None to avoid unique constraint violations
+        if not org_identifier:
+            org_identifier = None
+
         existing: Issuer | None = None
         if org_identifier:
             result = await self.session.execute(
