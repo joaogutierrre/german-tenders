@@ -14,6 +14,7 @@ STRINGS: dict[str, str] = {
     "welcome.menu.ingest_embed": "Vektor-Embeddings fuer die Suche generieren",
     "welcome.menu.search_query": "Semantische + strukturierte Ausschreibungssuche",
     "welcome.menu.orgs_load": "Organisationen aus CSV laden",
+    "welcome.menu.orgs_list": "Alle Organisationen und Details auflisten",
     "welcome.menu.orgs_match": "Organisationen mit passenden Ausschreibungen abgleichen",
     "welcome.menu.stats": "Systemstatistiken anzeigen",
     "welcome.menu.docs_analyze": "Dokumenten-Lieferantenportale analysieren",
@@ -56,6 +57,7 @@ STRINGS: dict[str, str] = {
     "help.cmd.dashboard": "Hintergrundjobs in Echtzeit ueberwachen. Zeigt eine Live-Tabelle mit Fortschrittsbalken aller Jobs. Mit --inspect <job-id> einzelne Jobs inspizieren.",
     "help.cmd.search_query": "Ausschreibungen mit semantischen und strukturierten Filtern suchen.",
     "help.cmd.orgs_load": "Organisationen aus einer CSV-Datei laden.",
+    "help.cmd.orgs_list": "Alle Organisationen mit Details auflisten.",
     "help.cmd.orgs_match": "Ausschreibungsabgleich fuer Organisationen durchfuehren.",
     "help.cmd.docs_analyze": "Dokumenten-Lieferantenportale analysieren.",
     "help.cmd.docs_download": "Dokumente von einem Lieferantenportal herunterladen.",
@@ -87,7 +89,10 @@ STRINGS: dict[str, str] = {
     "help.opt.bg": "Im Hintergrund ausfuehren (ueberlebt CLI-Beendigung, ueberwachen mit 'tenderx dashboard')",
     "help.opt.enrich_bg": "KI-Anreicherung nach Erfassung im Hintergrund starten",
     "help.opt.gpu": "GPU-beschleunigte parallele Anreicherung aktivieren (10 gleichzeitig, erfordert NVIDIA GPU)",
+    "help.opt.enrich_all": "ALLE Tenders erneut anreichern (einschliesslich bereits angereicherter)",
     "help.opt.archive": "Rohe API-Exporte in MinIO archivieren (Standard: aktiviert)",
+    "help.opt.has_website": "Nur Organisationen mit Website anzeigen",
+    "help.opt.no_website": "Nur Organisationen ohne Website anzeigen",
 
     # ── Ingest ─────────────────────────────────────────────────
     "ingest.progress_date": "Ausschreibungen fuer {date} werden eingelesen...",
@@ -151,6 +156,15 @@ STRINGS: dict[str, str] = {
     "orgs.match_one_queries": "\nAnfragen:",
     "orgs.match_one_total": "\nTreffer gesamt: {count}",
     "orgs.match_one_top": "\nBeste Treffer:",
+    "orgs.list_title": "Organisationen ({count})",
+    "orgs.list_no_results": "[dim]Keine Organisationen gefunden.[/dim]",
+    "orgs.col_id": "ID",
+    "orgs.col_name": "Name",
+    "orgs.col_tax_id": "Steuer-ID",
+    "orgs.col_website": "Website",
+    "orgs.col_description": "Beschreibung",
+    "orgs.col_keywords": "Schlagwoerter",
+    "orgs.col_resolved": "Aufgeloest",
 
     # ── Documents ──────────────────────────────────────────────
     "docs.no_portals": "[yellow]Keine Dokumentenportal-URLs gefunden.[/yellow]",

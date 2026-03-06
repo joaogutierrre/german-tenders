@@ -98,6 +98,7 @@ def show_welcome_screen() -> None:
         ("tenderx ingest embed", tr("welcome.menu.ingest_embed")),
         ("tenderx search query", tr("welcome.menu.search_query")),
         ("tenderx orgs load", tr("welcome.menu.orgs_load")),
+        ("tenderx orgs list", tr("welcome.menu.orgs_list")),
         ("tenderx orgs match --all", tr("welcome.menu.orgs_match")),
         ("tenderx tender list", tr("welcome.menu.tender_list")),
         ("tenderx docs analyze", tr("welcome.menu.docs_analyze")),
@@ -222,11 +223,13 @@ def _show_detailed_help() -> None:
                     [
                         ("--bg", tr("help.opt.bg")),
                         ("--gpu", tr("help.opt.gpu")),
+                        ("--all", tr("help.opt.enrich_all")),
                     ],
                     [
                         "tenderx ingest enrich",
                         "tenderx ingest enrich --gpu",
                         "tenderx ingest enrich --bg --gpu",
+                        "tenderx ingest enrich --all --bg --gpu",
                     ],
                 ),
                 (
@@ -278,6 +281,20 @@ def _show_detailed_help() -> None:
                     [
                         "tenderx orgs load",
                         "tenderx orgs load --csv my_companies.csv",
+                    ],
+                ),
+                (
+                    "tenderx orgs list",
+                    tr("help.cmd.orgs_list"),
+                    [
+                        ("--has-website", tr("help.opt.has_website")),
+                        ("--no-website", tr("help.opt.no_website")),
+                        ("--limit N", tr("help.opt.limit") + " [dim](default: 100)[/dim]"),
+                    ],
+                    [
+                        "tenderx orgs list",
+                        "tenderx orgs list --has-website",
+                        "tenderx orgs list --no-website",
                     ],
                 ),
                 (
@@ -660,13 +677,14 @@ def ingest_run(
 def ingest_enrich(
     bg: bool = typer.Option(False, "--bg", help=tr("help.opt.bg")),
     gpu: bool = typer.Option(False, "--gpu", help=tr("help.opt.gpu")),
+    all_tenders: bool = typer.Option(False, "--all", help=tr("help.opt.enrich_all")),
 ) -> None:
-    """Run AI enrichment on unenriched tenders."""
+    """Run AI enrichment on tenders."""
     if bg:
         async def _bg() -> None:
             from src.background.manager import BackgroundJobManager
             manager = BackgroundJobManager()
-            job_id = await manager.create_job("enrichment", {"gpu": gpu})
+            job_id = await manager.create_job("enrichment", {"gpu": gpu, "reprocess_all": all_tenders})
             manager.spawn_worker(job_id)
             short_id = str(job_id)[:8]
             console.print(tr("bg.job_started", job_id=short_id))
@@ -689,7 +707,7 @@ def ingest_enrich(
 
         console.print(tr("ingest.enrich_running"))
         ep = EnrichmentPipeline(client, gpu=gpu)
-        result = await ep.run()
+        result = await ep.run(reprocess_all=all_tenders)
         console.print(
             tr("ingest.enrich_done",
                succeeded=result.succeeded,
@@ -839,6 +857,57 @@ def orgs_load(
         asyncio.run(_run())
     except FileNotFoundError:
         console.print(tr("orgs.file_not_found", path=str(resolved)))
+    except ConnectionRefusedError:
+        console.print(tr("common.db_unavailable"))
+    except Exception as exc:
+        console.print(tr("common.error", error=exc))
+
+
+@orgs_app.command("list", help=tr("help.cmd.orgs_list"))
+def orgs_list(
+    has_website: bool = typer.Option(False, "--has-website", help=tr("help.opt.has_website")),
+    no_website: bool = typer.Option(False, "--no-website", help=tr("help.opt.no_website")),
+    limit: int = typer.Option(100, help=tr("help.opt.limit")),
+) -> None:
+    """List organizations with optional website filters."""
+    async def _run() -> None:
+        from sqlalchemy import select
+        from src.db.models import Organization
+        from src.db.session import get_session
+
+        async with get_session() as session:
+            stmt = select(Organization).order_by(Organization.name)
+            if has_website:
+                stmt = stmt.where(Organization.website.isnot(None))
+            elif no_website:
+                stmt = stmt.where(Organization.website.is_(None))
+            stmt = stmt.limit(limit)
+            result = await session.execute(stmt)
+            orgs = list(result.scalars().all())
+
+        if not orgs:
+            console.print(tr("orgs.list_no_results"))
+            return
+
+        table = Table(title=tr("orgs.list_title", count=len(orgs)), expand=True)
+        table.add_column(tr("orgs.col_id"), width=38)
+        table.add_column(tr("orgs.col_name"), ratio=2)
+        table.add_column(tr("orgs.col_tax_id"), width=14)
+        table.add_column(tr("orgs.col_website"), ratio=2)
+        table.add_column(tr("orgs.col_keywords"), ratio=1)
+        table.add_column(tr("orgs.col_resolved"), width=9)
+
+        for org in orgs:
+            full_id = str(org.id)
+            website = org.website or "[dim]-[/dim]"
+            keywords = ", ".join(org.industry_keywords[:3]) if org.industry_keywords else "[dim]-[/dim]"
+            resolved = "[green]Yes[/green]" if org.website_resolved else "[dim]No[/dim]"
+            table.add_row(full_id, org.name, org.tax_id, website, keywords, resolved)
+
+        console.print(table)
+
+    try:
+        asyncio.run(_run())
     except ConnectionRefusedError:
         console.print(tr("common.db_unavailable"))
     except Exception as exc:

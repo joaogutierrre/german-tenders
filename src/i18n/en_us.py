@@ -14,6 +14,7 @@ STRINGS: dict[str, str] = {
     "welcome.menu.ingest_embed": "Generate vector embeddings for search",
     "welcome.menu.search_query": "Semantic + structured tender search",
     "welcome.menu.orgs_load": "Load organizations from CSV",
+    "welcome.menu.orgs_list": "List all organizations and their details",
     "welcome.menu.orgs_match": "Match organizations to relevant tenders",
     "welcome.menu.stats": "Show system statistics",
     "welcome.menu.docs_analyze": "Analyze document supplier portals",
@@ -56,6 +57,7 @@ STRINGS: dict[str, str] = {
     "help.cmd.dashboard": "Monitor background jobs in real time. Shows a live table with progress bars for all jobs. Use --inspect <job-id> to drill into a specific job.",
     "help.cmd.search_query": "Search tenders with semantic and structured filters.",
     "help.cmd.orgs_load": "Load organizations from a CSV file.",
+    "help.cmd.orgs_list": "List all organizations with their details.",
     "help.cmd.orgs_match": "Run tender matching for organizations.",
     "help.cmd.docs_analyze": "Analyze document supplier portals.",
     "help.cmd.docs_download": "Download documents from a supplier portal.",
@@ -87,7 +89,10 @@ STRINGS: dict[str, str] = {
     "help.opt.bg": "Run in background (survives CLI exit, monitor with 'tenderx dashboard')",
     "help.opt.enrich_bg": "Run AI enrichment in background after ingestion",
     "help.opt.gpu": "Enable GPU-accelerated parallel enrichment (10 concurrent, requires NVIDIA GPU)",
+    "help.opt.enrich_all": "Re-enrich ALL tenders (including already enriched ones)",
     "help.opt.archive": "Archive raw API exports to MinIO (default: enabled)",
+    "help.opt.has_website": "Show only organizations with a website",
+    "help.opt.no_website": "Show only organizations without a website",
 
     # ── Ingest ─────────────────────────────────────────────────
     "ingest.progress_date": "Ingesting tenders for {date}...",
@@ -151,6 +156,15 @@ STRINGS: dict[str, str] = {
     "orgs.match_one_queries": "\nQueries:",
     "orgs.match_one_total": "\nTotal matches: {count}",
     "orgs.match_one_top": "\nTop matches:",
+    "orgs.list_title": "Organizations ({count})",
+    "orgs.list_no_results": "[dim]No organizations found.[/dim]",
+    "orgs.col_id": "ID",
+    "orgs.col_name": "Name",
+    "orgs.col_tax_id": "Tax ID",
+    "orgs.col_website": "Website",
+    "orgs.col_description": "Description",
+    "orgs.col_keywords": "Keywords",
+    "orgs.col_resolved": "Resolved",
 
     # ── Documents ──────────────────────────────────────────────
     "docs.no_portals": "[yellow]No document portal URLs found.[/yellow]",

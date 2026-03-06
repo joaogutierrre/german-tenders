@@ -14,6 +14,7 @@ STRINGS: dict[str, str] = {
     "welcome.menu.ingest_embed": "Gerar embeddings vetoriais para busca",
     "welcome.menu.search_query": "Busca semantica + estruturada de licitacoes",
     "welcome.menu.orgs_load": "Carregar organizacoes a partir de CSV",
+    "welcome.menu.orgs_list": "Listar todas as organizacoes e seus detalhes",
     "welcome.menu.orgs_match": "Combinar organizacoes com licitacoes relevantes",
     "welcome.menu.stats": "Exibir estatisticas do sistema",
     "welcome.menu.docs_analyze": "Analisar portais de fornecedores de documentos",
@@ -56,6 +57,7 @@ STRINGS: dict[str, str] = {
     "help.cmd.dashboard": "Monitorar jobs em background em tempo real. Exibe uma tabela live com barras de progresso de todos os jobs. Use --inspect <job-id> para detalhar um job específico.",
     "help.cmd.search_query": "Buscar licitacoes com filtros semanticos e estruturados.",
     "help.cmd.orgs_load": "Carregar organizacoes a partir de um arquivo CSV.",
+    "help.cmd.orgs_list": "Listar todas as organizacoes com seus detalhes.",
     "help.cmd.orgs_match": "Executar correspondencia de licitacoes para organizacoes.",
     "help.cmd.docs_analyze": "Analisar portais de fornecedores de documentos.",
     "help.cmd.docs_download": "Baixar documentos de um portal de fornecedor.",
@@ -87,7 +89,10 @@ STRINGS: dict[str, str] = {
     "help.opt.bg": "Executar em background (sobrevive ao fechamento da CLI, monitore com 'tenderx dashboard')",
     "help.opt.enrich_bg": "Executar enriquecimento com IA em background apos ingestao",
     "help.opt.gpu": "Ativar enriquecimento paralelo com GPU (10 simultaneos, requer GPU NVIDIA)",
+    "help.opt.enrich_all": "Re-enriquecer TODAS as tenders (incluindo as ja enriquecidas)",
     "help.opt.archive": "Arquivar exports brutos da API no MinIO (padrao: ativado)",
+    "help.opt.has_website": "Mostrar apenas organizacoes com website",
+    "help.opt.no_website": "Mostrar apenas organizacoes sem website",
 
     # ── Ingest ─────────────────────────────────────────────────
     "ingest.progress_date": "Ingerindo licitacoes para {date}...",
@@ -151,6 +156,15 @@ STRINGS: dict[str, str] = {
     "orgs.match_one_queries": "\nConsultas:",
     "orgs.match_one_total": "\nTotal de correspondencias: {count}",
     "orgs.match_one_top": "\nMelhores correspondencias:",
+    "orgs.list_title": "Organizacoes ({count})",
+    "orgs.list_no_results": "[dim]Nenhuma organizacao encontrada.[/dim]",
+    "orgs.col_id": "ID",
+    "orgs.col_name": "Nome",
+    "orgs.col_tax_id": "CNPJ/Tax ID",
+    "orgs.col_website": "Website",
+    "orgs.col_description": "Descricao",
+    "orgs.col_keywords": "Palavras-chave",
+    "orgs.col_resolved": "Resolvido",
 
     # ── Documents ──────────────────────────────────────────────
     "docs.no_portals": "[yellow]Nenhuma URL de portal de documentos encontrada.[/yellow]",
