@@ -1,4 +1,4 @@
-"""Orchestrates tender ingestion: fetch → parse → store."""
+"""Orchestrates tender ingestion: fetch → parse → store → enrich URLs."""
 
 import logging
 import time
@@ -23,13 +23,25 @@ class PipelineResult:
     updated: int = 0
     errors: int = 0
     duration_seconds: float = 0.0
+    ocds_urls_updated: int = 0
+    exports_archived: int = 0
 
 
 class TenderPipeline:
     """Orchestrates tender ingestion from API to database."""
 
-    def __init__(self, api_client: TenderAPIClient | None = None) -> None:
+    def __init__(
+        self,
+        api_client: TenderAPIClient | None = None,
+        archive_exports: bool | None = None,
+    ) -> None:
         self.api_client = api_client or TenderAPIClient()
+        if archive_exports is None:
+            from src.config import settings
+
+            self._archive_exports = settings.archive_raw_exports
+        else:
+            self._archive_exports = archive_exports
 
     async def run(self, days: int = 7) -> PipelineResult:
         """Ingest tenders from the last N days.
@@ -58,6 +70,8 @@ class TenderPipeline:
                 result.inserted += day_result.inserted
                 result.updated += day_result.updated
                 result.errors += day_result.errors
+                result.ocds_urls_updated += day_result.ocds_urls_updated
+                result.exports_archived += day_result.exports_archived
             except Exception:
                 logger.error("Failed to process %s", current, exc_info=True)
                 result.errors += 1
@@ -66,11 +80,13 @@ class TenderPipeline:
 
         result.duration_seconds = time.time() - t0
         logger.info(
-            "Pipeline complete: %d days, %d fetched, %d new, %d updated, %d errors (%.1fs)",
+            "Pipeline complete: %d days, %d fetched, %d new, %d updated, "
+            "%d OCDS URLs, %d errors (%.1fs)",
             result.days_processed,
             result.total_fetched,
             result.inserted,
             result.updated,
+            result.ocds_urls_updated,
             result.errors,
             result.duration_seconds,
         )
@@ -80,15 +96,20 @@ class TenderPipeline:
         """Fetch and store tenders for a single day."""
         result = PipelineResult()
 
+        # ── Step 1: Fetch and parse CSV export ──
         zip_bytes = await self.api_client.fetch_day_export(pub_day)
         if not zip_bytes:
             logger.info("No data for %s", pub_day)
             return result
 
+        # Archive the CSV export (best-effort)
+        await self._try_archive(pub_day, "csv.zip", zip_bytes, result)
+
         records = parse_csv_zip(zip_bytes)
         result.total_fetched = len(records)
         logger.info("Parsed %d records for %s", len(records), pub_day)
 
+        # ── Step 2: Upsert tenders from CSV ──
         async with get_session() as session:
             issuer_repo = IssuerRepository(session)
             tender_repo = TenderRepository(session)
@@ -131,6 +152,81 @@ class TenderPipeline:
                         record.notice_id,
                         exc_info=True,
                     )
+                    await session.rollback()
                     result.errors += 1
 
+        # ── Step 3: Enrich document URLs from OCDS ──
+        await self._enrich_from_ocds(pub_day, result)
+
         return result
+
+    async def _enrich_from_ocds(
+        self, pub_day: date, result: PipelineResult
+    ) -> None:
+        """Fetch OCDS export and enrich tenders with document URLs.
+
+        Best-effort — failures are logged but never break the pipeline.
+        """
+        try:
+            ocds_bytes = await self.api_client.fetch_day_export(
+                pub_day, fmt="ocds.zip"
+            )
+            if not ocds_bytes:
+                logger.debug("No OCDS data for %s", pub_day)
+                return
+
+            # Archive the OCDS export
+            await self._try_archive(pub_day, "ocds.zip", ocds_bytes, result)
+
+            from src.ingestion.ocds_enricher import (
+                enrich_document_urls,
+                parse_ocds_zip,
+            )
+
+            ocds_data = parse_ocds_zip(ocds_bytes)
+            if ocds_data:
+                ocds_result = await enrich_document_urls(ocds_data)
+                result.ocds_urls_updated = ocds_result.tenders_updated
+                logger.info(
+                    "OCDS enrichment for %s: %d URLs updated, %d not found",
+                    pub_day,
+                    ocds_result.tenders_updated,
+                    ocds_result.tenders_not_found,
+                )
+        except Exception:
+            logger.warning(
+                "OCDS document URL enrichment failed for %s",
+                pub_day,
+                exc_info=True,
+            )
+
+    async def _try_archive(
+        self,
+        pub_day: date,
+        fmt: str,
+        data: bytes,
+        result: PipelineResult,
+    ) -> None:
+        """Archive a raw export ZIP to MinIO (best-effort).
+
+        Args:
+            pub_day: Publication date.
+            fmt: Export format (``csv.zip``, ``ocds.zip``).
+            data: Raw ZIP bytes.
+            result: Pipeline result to update archive count.
+        """
+        if not self._archive_exports:
+            return
+
+        try:
+            from src.documents.export_archiver import ExportArchiver
+
+            archiver = ExportArchiver()
+            key = await archiver.archive(pub_day, fmt, data)
+            if key:
+                result.exports_archived += 1
+                logger.info("Archived %s for %s", fmt, pub_day)
+        except Exception:
+            logger.warning(
+                "Failed to archive %s for %s", fmt, pub_day, exc_info=True
+            )
