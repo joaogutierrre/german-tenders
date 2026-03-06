@@ -8,10 +8,13 @@ A procurement intelligence MVP that ingests German public tenders from [oeffentl
 
 ```
                     oeffentlichevergabe.de API
-                            │
-                            ▼
-                  ┌─────────────────────┐
-                  │  Ingestion Pipeline  │  CSV ZIP → parse → upsert
+                         │           │
+                    CSV ZIP      OCDS ZIP
+                         │           │
+                  ┌──────▼───────────▼──┐
+                  │  Ingestion Pipeline  │  CSV → parse → upsert
+                  │  + OCDS Enrichment   │  OCDS → document URLs
+                  │  + Export Archival   │  ZIPs → MinIO (api-exports)
                   └────────┬────────────┘
                            │
                   ┌────────▼────────────┐
@@ -116,6 +119,7 @@ tenderx stats --verbose   # adds a description column for each metric
 | `tenderx ingest run --date YYYY-MM-DD` | Ingest tenders for a specific date |
 | `tenderx ingest run --no-enrich` | Ingest without AI enrichment |
 | `tenderx ingest run --enrich-bg` | Offload enrichment to a background job |
+| `tenderx ingest run --no-archive` | Skip archiving raw API exports to MinIO |
 | `tenderx ingest enrich` | Run AI enrichment on unenriched tenders |
 | `tenderx search query "..."` | Semantic + structured search |
 | `tenderx search query --cpv 72000000` | Filter by CPV code |
@@ -137,13 +141,17 @@ tenderx stats --verbose   # adds a description column for each metric
 
 ## Data Source
 
-The platform uses the **oeffentlichevergabe.de** bulk export API:
+The platform uses the **oeffentlichevergabe.de** bulk export API in two formats:
 
 ```
-GET /api/notice-exports?pubDay=YYYY-MM-DD&format=csv.zip
+GET /api/notice-exports?pubDay=YYYY-MM-DD&format=csv.zip    # structured data
+GET /api/notice-exports?pubDay=YYYY-MM-DD&format=ocds.zip   # document URLs
 ```
 
-Each daily export contains ~19 normalized CSV files (~70 notices/day). Data available since 2022-12-01.
+- **CSV format**: ~19 normalized CSV files per day (~70 notices/day), used for tender data ingestion.
+- **OCDS format**: Open Contracting Data Standard JSON, containing `tender.documents[]` arrays with per-tender document portal URLs. ~73% of notices include document URLs in this format.
+
+Both formats are automatically fetched during ingestion. Raw ZIP exports are archived in a dedicated MinIO bucket (`api-exports`) for reference. Data available since 2022-12-01.
 
 ## Data Model
 
@@ -157,7 +165,7 @@ Each daily export contains ~19 normalized CSV files (~70 notices/day). Data avai
 
 ## Architecture Decisions
 
-1. **CSV over OCDS JSON** — The API's CSV export is pre-normalized into relational tables, making it simpler to parse than the nested OCDS JSON format.
+1. **CSV + OCDS dual format** — CSV exports provide pre-normalized structured data (easier to parse); OCDS exports supplement with per-tender document portal URLs not available in CSV.
 
 2. **pgvector over external vector DB** — Single PostgreSQL instance handles both structured queries and vector similarity search, reducing operational complexity.
 
@@ -167,7 +175,11 @@ Each daily export contains ~19 normalized CSV files (~70 notices/day). Data avai
 
 5. **CLI-first** — Typer CLI as primary interface. No web server needed for the MVP.
 
-6. **Graceful degradation** — Pipeline continues if Ollama is down (skips enrichment), if MinIO is down (skips document storage), or if individual tenders fail (logs and continues).
+6. **Graceful degradation** — Pipeline continues if Ollama is down (skips enrichment), if MinIO is down (skips document storage), if OCDS is unavailable (skips URL enrichment), or if individual tenders fail (logs and continues).
+
+7. **Raw export archival** — API exports (CSV and OCDS ZIPs) are archived in a separate MinIO bucket (`api-exports`) for auditability and reprocessing. This is best-effort and never blocks ingestion.
+
+8. **Multi-strategy document downloading** — Document portal URLs are enriched from OCDS during ingestion. The downloader uses a layered strategy: direct download detection via HEAD request, portal-specific handlers for known platforms (deutsche-evergabe.de, subreport.de, etc.), and enhanced generic HTML scraping (5 strategies including `<a download>`, iframe sources, and meta refresh redirects).
 
 ## Testing
 
@@ -182,14 +194,24 @@ pytest tests/test_enrichment.py -v
 pytest tests/ --cov=src --cov-report=term-missing
 ```
 
-177 unit tests covering: configuration, models, prompts, LLM client, enrichment pipeline, CSV loading, search filters, cosine similarity, embeddings, query generation, matching, document analysis, i18n catalog completeness and locale switching. Integration tests auto-skip if Docker PostgreSQL is unavailable.
+210+ unit tests covering: configuration, models, prompts, LLM client, enrichment pipeline, CSV loading, search filters, cosine similarity, embeddings, query generation, matching, document analysis, OCDS enrichment, export archival, UI scraping fallback, i18n catalog completeness and locale switching. Integration tests auto-skip if Docker PostgreSQL is unavailable.
+
+## Data Gaps & Fallback Strategies
+
+Not all fields required by the challenge are available via the API. See [`docs/data_gaps.md`](docs/data_gaps.md) for a detailed analysis of field availability, missing data, and our reasoning about fallback strategies.
+
+Key gaps:
+- **`eu_funded`**: Not in CSV/OCDS exports. Scraping fallback implemented in `src/ingestion/scraper.py` with keyword detection.
+- **`renewable`**: Not in API. Would require NLP-based detection in tender descriptions.
+- **`award_criteria`**: Partially available; structured extraction is inconsistent across tenders.
+- **Issuer contact details**: Emails/phones not included in bulk exports.
 
 ## Known Limitations
 
 - Ollama enrichment is slow (~5-10 seconds per tender on CPU)
 - Embedding model loads on first search (~30s warmup)
 - No web UI (CLI only)
-- Document downloading depends on supplier portal structure (HTML scraping)
+- Document downloading depends on supplier portal structure (multi-strategy scraping with portal-specific handlers)
 - No incremental embedding updates (re-generates all unembedded on each run)
 
 ## Project Structure
@@ -216,7 +238,9 @@ src/
 ├── ingestion/
 │   ├── api_client.py      # oeffentlichevergabe.de API client
 │   ├── parser.py          # CSV ZIP parser
-│   ├── tender_pipeline.py # Ingestion orchestration
+│   ├── tender_pipeline.py # Ingestion orchestration (CSV + OCDS + archival)
+│   ├── ocds_enricher.py   # OCDS document URL enrichment
+│   ├── scraper.py         # UI scraping fallback (eu_funded, award criteria)
 │   └── enrichment.py      # AI enrichment pipeline
 ├── organizations/
 │   └── csv_loader.py      # Organization CSV import
@@ -231,7 +255,8 @@ src/
 └── documents/
     ├── analyzer.py        # Supplier portal analysis
     ├── storage.py         # MinIO wrapper
-    └── downloader.py      # Document scraper + downloader
+    ├── export_archiver.py # Raw API export archival (MinIO api-exports bucket)
+    └── downloader.py      # Multi-strategy document scraper + downloader
 ```
 
 ## License

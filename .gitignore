@@ -28,6 +28,9 @@ Thumbs.db
 # Data outputs (regenerable)
 data/output/*.csv
 
+# Worker logs (runtime)
+data/logs/
+
 # Byte-compiled
 *.pyc
 
