@@ -1,6 +1,8 @@
 """Sentence-transformers wrapper for embedding generation."""
 
+import inspect
 import logging
+from collections.abc import Callable
 
 from sentence_transformers import SentenceTransformer
 
@@ -34,8 +36,15 @@ def encode_batch(texts: list[str]) -> list[list[float]]:
     return model.encode(texts, normalize_embeddings=True, batch_size=64).tolist()
 
 
-async def generate_tender_embeddings(limit: int = 100) -> int:
+async def generate_tender_embeddings(
+    limit: int = 100,
+    on_progress: Callable[[int, int], None] | None = None,
+) -> int:
     """Generate embeddings for tenders that have searchable text but no embedding.
+
+    Args:
+        limit: Maximum tenders to process.
+        on_progress: Optional callback(current, total). Can be sync or async.
 
     Returns:
         Number of tenders embedded.
@@ -50,7 +59,14 @@ async def generate_tender_embeddings(limit: int = 100) -> int:
             logger.info("No tenders need embeddings")
             return 0
 
-        logger.info("Generating embeddings for %d tenders", len(tenders))
+        total = len(tenders)
+        logger.info("Generating embeddings for %d tenders", total)
+
+        # Emit initial progress so dashboard shows total immediately
+        if on_progress:
+            ret = on_progress(0, total)
+            if inspect.isawaitable(ret):
+                await ret
 
         texts = [t.ai_searchable_text for t in tenders]
         embeddings = encode_batch(texts)
@@ -58,6 +74,10 @@ async def generate_tender_embeddings(limit: int = 100) -> int:
         for tender, embedding in zip(tenders, embeddings):
             await repo.update_embedding(tender.id, embedding)
             count += 1
+            if on_progress:
+                ret = on_progress(count, total)
+                if inspect.isawaitable(ret):
+                    await ret
 
         await session.commit()
 

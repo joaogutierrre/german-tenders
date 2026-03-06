@@ -37,13 +37,19 @@ class BackgroundJobManager:
         else:
             kwargs["start_new_session"] = True
 
+        # Log worker output to a file for debugging instead of /dev/null
+        log_dir = Path(__file__).resolve().parent.parent.parent / "data" / "logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_file = log_dir / f"worker-{job_id}.log"
+        fh = open(log_file, "w")  # noqa: SIM115
+
         proc = subprocess.Popen(
             [sys.executable, str(WORKER_SCRIPT), str(job_id)],
-            stdout=open(os.devnull, "w"),
-            stderr=open(os.devnull, "w"),
+            stdout=fh,
+            stderr=fh,
             **kwargs,
         )
-        logger.info("Spawned worker PID %d for job %s", proc.pid, job_id)
+        logger.info("Spawned worker PID %d for job %s (log: %s)", proc.pid, job_id, log_file)
         return proc.pid
 
     async def cancel_job(self, job_id: UUID) -> None:

@@ -38,17 +38,22 @@ async def _update_progress(job_id: UUID, current: int, total: int) -> None:
 async def _run_enrichment(job_id: UUID, params: dict) -> dict:
     """Execute the enrichment pipeline for a background job."""
     from src.ai.llm_client import OllamaClient
+    from src.config import settings
     from src.ingestion.enrichment import EnrichmentPipeline
 
     limit = params.get("limit")
-    client = OllamaClient()
+    gpu = params.get("gpu", False)
+    client = OllamaClient(model=settings.ollama_model_fast)
 
-    def on_progress(current: int, total: int) -> None:
-        asyncio.get_event_loop().create_task(
-            _update_progress(job_id, current, total)
-        )
+    # State file for per-tender inspect view
+    log_dir = Path(__file__).resolve().parent.parent.parent / "data" / "logs"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    state_file = log_dir / f"worker-{job_id}.state"
 
-    pipeline = EnrichmentPipeline(client)
+    async def on_progress(current: int, total: int) -> None:
+        await _update_progress(job_id, current, total)
+
+    pipeline = EnrichmentPipeline(client, gpu=gpu, state_file=state_file)
     result = await pipeline.run(limit=limit, on_progress=on_progress)
 
     return {
@@ -67,10 +72,8 @@ async def _run_docs_download(job_id: UUID, params: dict) -> dict:
     domain = params["domain"]
     limit = params.get("limit", 100)
 
-    def on_progress(current: int, total: int) -> None:
-        asyncio.get_event_loop().create_task(
-            _update_progress(job_id, current, total)
-        )
+    async def on_progress(current: int, total: int) -> None:
+        await _update_progress(job_id, current, total)
 
     downloader = DocumentDownloader()
     result = await downloader.download_for_supplier(
@@ -85,9 +88,24 @@ async def _run_docs_download(job_id: UUID, params: dict) -> dict:
     }
 
 
+async def _run_embedding(job_id: UUID, params: dict) -> dict:
+    """Execute the embedding generation pipeline for a background job."""
+    from src.search.embeddings import generate_tender_embeddings
+
+    limit = params.get("limit", 500)
+
+    async def on_progress(current: int, total: int) -> None:
+        await _update_progress(job_id, current, total)
+
+    count = await generate_tender_embeddings(limit=limit, on_progress=on_progress)
+
+    return {"embedded": count}
+
+
 DISPATCHERS = {
     "enrichment": _run_enrichment,
     "docs_download": _run_docs_download,
+    "embedding": _run_embedding,
 }
 
 
@@ -109,7 +127,7 @@ async def run_job(job_id: UUID) -> None:
             job_id,
             "running",
             pid=os.getpid(),
-            started_at=datetime.now(timezone.utc),
+            started_at=datetime.utcnow(),
         )
         job_type = job.job_type
         params = job.params
@@ -122,7 +140,7 @@ async def run_job(job_id: UUID) -> None:
                 job_id,
                 "failed",
                 error_message=f"Unknown job type: {job_type}",
-                completed_at=datetime.now(timezone.utc),
+                completed_at=datetime.utcnow(),
             )
         return
 
@@ -134,7 +152,7 @@ async def run_job(job_id: UUID) -> None:
                 job_id,
                 "completed",
                 result_summary=result_summary,
-                completed_at=datetime.now(timezone.utc),
+                completed_at=datetime.utcnow(),
             )
         logger.info("Job %s completed: %s", job_id, result_summary)
     except Exception as exc:
@@ -145,7 +163,7 @@ async def run_job(job_id: UUID) -> None:
                 job_id,
                 "failed",
                 error_message=str(exc),
-                completed_at=datetime.now(timezone.utc),
+                completed_at=datetime.utcnow(),
             )
 
 
