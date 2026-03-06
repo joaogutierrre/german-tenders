@@ -183,6 +183,15 @@ class TenderRepository:
         )
         return list(result.scalars().all())
 
+    async def find_for_enrichment(self, limit: int = 100) -> list[Tender]:
+        """Find all tenders with a title, regardless of enrichment status."""
+        result = await self.session.execute(
+            select(Tender)
+            .where(Tender.title != "")
+            .limit(limit)
+        )
+        return list(result.scalars().all())
+
     async def find_unembedded(self, limit: int = 100) -> list[Tender]:
         """Find tenders with searchable text but no embedding."""
         result = await self.session.execute(

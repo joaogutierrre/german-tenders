@@ -78,15 +78,20 @@ class EnrichmentPipeline:
         self,
         limit: int | None = None,
         on_progress: Callable[[int, int], None] | None = None,
+        reprocess_all: bool = False,
     ) -> EnrichmentResult:
-        """Enrich a batch of unenriched tenders.
+        """Enrich a batch of tenders.
 
         Args:
             limit: Maximum tenders to process. Defaults to ingestion_batch_size.
             on_progress: Optional callback(current, total) called after each tender.
                          Can be sync or async (coroutine).
+            reprocess_all: If True, re-enrich ALL tenders (even already enriched ones).
         """
-        batch_size = limit or settings.ingestion_batch_size
+        if reprocess_all and limit is None:
+            batch_size = 100_000
+        else:
+            batch_size = limit or settings.ingestion_batch_size
         start = time.time()
         result = EnrichmentResult()
 
@@ -97,7 +102,10 @@ class EnrichmentPipeline:
         # Fetch tenders to enrich
         async with get_session() as session:
             repo = TenderRepository(session)
-            tenders = await repo.find_unenriched(limit=batch_size)
+            if reprocess_all:
+                tenders = await repo.find_for_enrichment(limit=batch_size)
+            else:
+                tenders = await repo.find_unenriched(limit=batch_size)
 
         if not tenders:
             logger.info("No unenriched tenders found")

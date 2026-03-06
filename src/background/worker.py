@@ -43,6 +43,7 @@ async def _run_enrichment(job_id: UUID, params: dict) -> dict:
 
     limit = params.get("limit")
     gpu = params.get("gpu", False)
+    reprocess_all = params.get("reprocess_all", False)
     client = OllamaClient(model=settings.ollama_model_fast)
 
     # State file for per-tender inspect view
@@ -54,7 +55,7 @@ async def _run_enrichment(job_id: UUID, params: dict) -> dict:
         await _update_progress(job_id, current, total)
 
     pipeline = EnrichmentPipeline(client, gpu=gpu, state_file=state_file)
-    result = await pipeline.run(limit=limit, on_progress=on_progress)
+    result = await pipeline.run(limit=limit, on_progress=on_progress, reprocess_all=reprocess_all)
 
     return {
         "processed": result.processed,
