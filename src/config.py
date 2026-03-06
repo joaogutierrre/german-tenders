@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     # Ollama
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "gemma3:4b"
+    ollama_model_fast: str = "gemma3:1b"
 
     # Embeddings
     embedding_model: str = "paraphrase-multilingual-MiniLM-L12-v2"
@@ -28,10 +29,12 @@ class Settings(BaseSettings):
     minio_user: str = "minioadmin"
     minio_password: str = "changeme"
     minio_bucket: str = "tender-documents"
+    minio_exports_bucket: str = "api-exports"
 
     # Ingestion
     ingestion_batch_size: int = 100
     ingestion_default_days: int = 7
+    archive_raw_exports: bool = True
 
     @property
     def database_url(self) -> str:
