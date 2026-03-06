@@ -121,15 +121,23 @@ tenderx stats --verbose   # adds a description column for each metric
 | `tenderx ingest run --enrich-bg` | Offload enrichment to a background job |
 | `tenderx ingest run --no-archive` | Skip archiving raw API exports to MinIO |
 | `tenderx ingest enrich` | Run AI enrichment on unenriched tenders |
+| `tenderx ingest enrich --all` | Re-enrich ALL tenders (including already enriched) |
+| `tenderx ingest enrich --bg --gpu` | Background GPU-accelerated enrichment |
+| `tenderx ingest enrich --all --bg --gpu` | Re-enrich all tenders in background with GPU |
+| `tenderx ingest embed` | Generate vector embeddings for unenriched tenders |
 | `tenderx search query "..."` | Semantic + structured search |
 | `tenderx search query --cpv 72000000` | Filter by CPV code |
 | `tenderx search query --nuts DE212` | Filter by NUTS region |
 | `tenderx search query --max-value 500000` | Filter by value |
 | `tenderx orgs load --csv PATH` | Load organizations from CSV |
+| `tenderx orgs list` | List all organizations with details |
+| `tenderx orgs list --has-website` | List only organizations with a website |
+| `tenderx orgs list --no-website` | List only organizations without a website |
 | `tenderx orgs match --org-id UUID` | Match one organization |
 | `tenderx orgs match --all` | Match all organizations |
 | `tenderx docs analyze` | Analyze document supplier portals |
 | `tenderx docs download --supplier DOMAIN` | Download documents from portal |
+| `tenderx tender list` | List recent tenders |
 | `tenderx tender show UUID` | Show full tender details |
 | `tenderx stats` | System statistics overview |
 | `tenderx stats --verbose` | Stats with metric descriptions |
@@ -194,7 +202,7 @@ pytest tests/test_enrichment.py -v
 pytest tests/ --cov=src --cov-report=term-missing
 ```
 
-210+ unit tests covering: configuration, models, prompts, LLM client, enrichment pipeline, CSV loading, search filters, cosine similarity, embeddings, query generation, matching, document analysis, OCDS enrichment, export archival, UI scraping fallback, i18n catalog completeness and locale switching. Integration tests auto-skip if Docker PostgreSQL is unavailable.
+224 unit tests covering: configuration, models, prompts, LLM client, enrichment pipeline, CSV loading, search filters, cosine similarity, embeddings, query generation, matching, document analysis, OCDS enrichment, export archival, UI scraping fallback, i18n catalog completeness and locale switching. Integration tests auto-skip if Docker PostgreSQL is unavailable.
 
 ## Data Gaps & Fallback Strategies
 
@@ -224,7 +232,7 @@ src/
 │   └── prompts.py         # Centralized prompt templates
 ├── background/
 │   ├── manager.py         # Spawn & track background jobs via multiprocessing
-│   └── worker.py          # Worker process (enrichment, docs_download)
+│   └── worker.py          # Worker process (enrichment, docs_download, embedding)
 ├── db/
 │   ├── models.py          # 7 SQLAlchemy models (incl. BackgroundJob)
 │   ├── session.py         # Async engine + session
