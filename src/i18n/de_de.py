@@ -11,6 +11,7 @@ STRINGS: dict[str, str] = {
     "welcome.quick_start": "Schnellstart",
     "welcome.menu.ingest_run": "Ausschreibungen von der Vergabe-API einlesen",
     "welcome.menu.ingest_enrich": "KI-Anreicherung gespeicherter Ausschreibungen starten",
+    "welcome.menu.ingest_embed": "Vektor-Embeddings fuer die Suche generieren",
     "welcome.menu.search_query": "Semantische + strukturierte Ausschreibungssuche",
     "welcome.menu.orgs_load": "Organisationen aus CSV laden",
     "welcome.menu.orgs_match": "Organisationen mit passenden Ausschreibungen abgleichen",
@@ -18,7 +19,21 @@ STRINGS: dict[str, str] = {
     "welcome.menu.docs_analyze": "Dokumenten-Lieferantenportale analysieren",
     "welcome.menu.docs_download": "Dokumente vom Lieferantenportal herunterladen",
     "welcome.menu.dashboard": "Hintergrundjobs in Echtzeit ueberwachen",
+    "welcome.menu.tender_list": "Gespeicherte Ausschreibungen auflisten und pruefen",
+    "welcome.menu.kill": "Hintergrundjobs abbrechen",
+    "welcome.menu.lang": "CLI-Sprache aendern",
+    "welcome.menu.purge": "ALLE Daten loeschen (DB + MinIO + Dateien)",
     "welcome.help_desc": "Alle Befehle und detaillierte Nutzung anzeigen",
+
+    # ── Detailed help (tenderx help) ────────────────────────────
+    "help.detailed.title": "TenderX — Befehlsreferenz",
+    "help.detailed.section_ingest": "Datenaufnahme",
+    "help.detailed.section_search": "Suche",
+    "help.detailed.section_orgs": "Organisationen",
+    "help.detailed.section_docs": "Dokumente",
+    "help.detailed.section_tender": "Ausschreibungen",
+    "help.detailed.section_system": "System",
+    "help.detailed.footer": "[dim]Tipp: Fuehren Sie einen Befehl mit --help aus fuer vollstaendige Details (z.B. tenderx ingest run --help)[/dim]",
 
     # ── Interactive Shell ──────────────────────────────────────
     "shell.hint": "Geben Sie 'help' fuer Befehle oder 'exit' zum Beenden ein.",
@@ -37,12 +52,14 @@ STRINGS: dict[str, str] = {
     # ── Help texts — commands ──────────────────────────────────
     "help.cmd.ingest_run": "Ausschreibungen von der deutschen Vergabe-API einlesen.",
     "help.cmd.ingest_enrich": "KI-Anreicherung fuer nicht angereicherte Ausschreibungen starten.",
-    "help.cmd.dashboard": "Hintergrundjobs in Echtzeit ueberwachen.",
+    "help.cmd.ingest_embed": "Vektor-Embeddings fuer angereicherte Ausschreibungen generieren.",
+    "help.cmd.dashboard": "Hintergrundjobs in Echtzeit ueberwachen. Zeigt eine Live-Tabelle mit Fortschrittsbalken aller Jobs. Mit --inspect <job-id> einzelne Jobs inspizieren.",
     "help.cmd.search_query": "Ausschreibungen mit semantischen und strukturierten Filtern suchen.",
     "help.cmd.orgs_load": "Organisationen aus einer CSV-Datei laden.",
     "help.cmd.orgs_match": "Ausschreibungsabgleich fuer Organisationen durchfuehren.",
     "help.cmd.docs_analyze": "Dokumenten-Lieferantenportale analysieren.",
     "help.cmd.docs_download": "Dokumente von einem Lieferantenportal herunterladen.",
+    "help.cmd.tender_list": "Ausschreibungen mit optionalen Filtern auflisten.",
     "help.cmd.tender_show": "Detailinformationen zu einer Ausschreibung anzeigen.",
     "help.cmd.stats": "Systemstatistiken anzeigen.",
     "help.cmd.purge": "ALLE Daten loeschen: Datenbankeintraege, MinIO-Objekte und generierte Dateien.",
@@ -65,9 +82,12 @@ STRINGS: dict[str, str] = {
     "help.opt.tender_id": "Ausschreibungs-UUID",
     "help.opt.verbose": "Detaillierte Beschreibungen fuer jede Metrik anzeigen",
     "help.opt.yes": "Bestaetigungsabfrage ueberspringen",
+    "help.opt.enriched_only": "Nur angereicherte Ausschreibungen anzeigen (mit KI-Zusammenfassung)",
     "help.opt.lang_default": "Sprache auf Englisch (Standard) zuruecksetzen",
     "help.opt.bg": "Im Hintergrund ausfuehren (ueberlebt CLI-Beendigung, ueberwachen mit 'tenderx dashboard')",
     "help.opt.enrich_bg": "KI-Anreicherung nach Erfassung im Hintergrund starten",
+    "help.opt.gpu": "GPU-beschleunigte parallele Anreicherung aktivieren (10 gleichzeitig, erfordert NVIDIA GPU)",
+    "help.opt.archive": "Rohe API-Exporte in MinIO archivieren (Standard: aktiviert)",
 
     # ── Ingest ─────────────────────────────────────────────────
     "ingest.progress_date": "Ausschreibungen fuer {date} werden eingelesen...",
@@ -84,6 +104,11 @@ STRINGS: dict[str, str] = {
     ),
     "ingest.ollama_unavailable": "[yellow]Ollama nicht verfuegbar \u2014 Anreicherung wird uebersprungen[/yellow]",
     "ingest.enrichment_skipped": "[yellow]Anreicherung uebersprungen: {error}[/yellow]",
+    "ingest.ocds_enriching": "Dokument-URLs aus OCDS anreichern...",
+    "ingest.ocds_result": "[green]OCDS:[/green] {updated} URLs angereichert, {not_found} nicht gefunden",
+    "ingest.ocds_skipped": "[dim]OCDS-Anreicherung: keine Daten verfuegbar[/dim]",
+    "ingest.archived_export": "[dim]{fmt} fuer {date} archiviert[/dim]",
+    "ingest.archive_skipped": "[dim]Export-Archivierung deaktiviert[/dim]",
     "ingest.embeddings_running": "\nEmbeddings werden generiert...",
     "ingest.embeddings_result": "[green]Embeddings:[/green] {count} generiert",
     "ingest.embeddings_skipped": "[yellow]Embeddings uebersprungen: {error}[/yellow]",
@@ -99,6 +124,7 @@ STRINGS: dict[str, str] = {
     # ── Search ─────────────────────────────────────────────────
     "search.no_results": "[yellow]Keine Ergebnisse gefunden.[/yellow]",
     "search.table_title": "Suchergebnisse ({count})",
+    "search.col_id": "ID",
     "search.col_score": "Punktzahl",
     "search.col_title": "Titel",
     "search.col_cpv": "CPV",
@@ -136,7 +162,7 @@ STRINGS: dict[str, str] = {
     "docs.download_done": (
         "\n[green]Fertig![/green] "
         "{tenders} Ausschreibungen, {downloaded} heruntergeladen, "
-        "{failed} fehlgeschlagen, {bytes} Bytes"
+        "{failed} fehlgeschlagen, {no_links} ohne Links, {bytes} Bytes"
     ),
 
     # ── Tender show ────────────────────────────────────────────
@@ -152,10 +178,12 @@ STRINGS: dict[str, str] = {
     "tender.label_platform": "Plattform:",
     "tender.label_docs_portal": "Dokumentenportal:",
     "tender.label_ai_summary": "KI-Zusammenfassung:",
+    "tender.label_embedding": "Embedding:",
     "tender.label_issuer": "Vergabestelle:",
     "tender.label_contact": "Kontakt:",
     "tender.label_lots": "Lose ({count}):",
     "tender.label_documents": "Dokumente ({count}):",
+    "tender.list_title": "Ausschreibungen ({count})",
     "tender.untitled": "Ohne Titel",
     "tender.unknown_type": "unbekannt",
 
@@ -250,12 +278,31 @@ STRINGS: dict[str, str] = {
     "dashboard.no_jobs": "[dim]Keine Hintergrundjobs gefunden. Starten Sie einen mit der --bg Flag.[/dim]",
     "dashboard.exit_hint": "[dim]Druecken Sie Strg+C zum Beenden[/dim]",
     "dashboard.stale_detected": "[yellow]{count} veraltete(r) Job(s) erkannt — als fehlgeschlagen markiert.[/yellow]",
+    "dashboard.inspect_title": "Job inspizieren {job_id}",
+    "dashboard.inspect_not_found": "[red]Job {job_id} nicht gefunden.[/red]",
+    "dashboard.inspect_status": "Status: {status}  |  Fortschritt: {progress}  |  Dauer: {duration}",
+    "dashboard.inspect_log_title": "Worker-Log (letzte {lines} Zeilen)",
+    "dashboard.inspect_tenders_title": "Fortschritt pro Tender",
+    "dashboard.inspect_no_state": "[dim]Kein Pro-Tender-Status verfuegbar (sequentieller Modus oder Job noch nicht gestartet).[/dim]",
+    "dashboard.inspect_col_tender": "Tender-ID",
+    "dashboard.inspect_col_title": "Titel",
+    "dashboard.inspect_col_step": "Schritt",
+    "help.opt.inspect": "Einen Job anhand der vollstaendigen oder partiellen UUID inspizieren. Zeigt Live-Fortschrittsbalken, Enrichment-Schritte pro Tender (summary/searchable/saving/done) und das Worker-Log. Akzeptiert die ersten 8 Zeichen der Job-ID.",
 
     # ── Background Jobs ───────────────────────────────────────
     "bg.job_started": "[green]Job {job_id} im Hintergrund gestartet.[/green] Verwenden Sie [bold]tenderx dashboard[/bold] zur Ueberwachung.",
     "bg.job_type_enrichment": "KI-Anreicherung",
     "bg.job_type_docs_download": "Dokumenten-Download",
+    "bg.job_type_embedding": "Embedding-Generierung",
     "bg.enrich_started_bg": "[green]Anreicherungsjob {job_id} im Hintergrund gestartet.[/green] Verwenden Sie [bold]tenderx dashboard[/bold] zur Ueberwachung.",
+    "bg.kill_all_confirm": "[bold]{count}[/bold] aktive(n) Job(s) abbrechen?",
+    "bg.kill_all_done": "[green]{count} Job(s) abgebrochen.[/green]",
+    "bg.kill_all_none": "[dim]Keine aktiven Jobs zum Abbrechen.[/dim]",
+    "bg.kill_one_done": "[green]Job {job_id} abgebrochen.[/green]",
+    "bg.kill_one_not_found": "[red]Job {job_id} nicht gefunden.[/red]",
+    "bg.kill_one_not_active": "[yellow]Job {job_id} ist nicht aktiv (Status: {status}).[/yellow]",
+    "help.cmd.kill": "Hintergrundjobs abbrechen (einen per ID oder --all).",
+    "help.opt.kill_all": "Alle aktiven Jobs abbrechen",
 
     # ── Common ─────────────────────────────────────────────────
     "common.db_unavailable": "[red]Datenbank nicht verfuegbar. Fuehren Sie zuerst 'docker compose up -d' aus.[/red]",

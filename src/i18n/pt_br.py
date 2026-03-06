@@ -11,6 +11,7 @@ STRINGS: dict[str, str] = {
     "welcome.quick_start": "Inicio Rapido",
     "welcome.menu.ingest_run": "Ingerir licitacoes da API de compras publicas",
     "welcome.menu.ingest_enrich": "Executar enriquecimento com IA nas licitacoes armazenadas",
+    "welcome.menu.ingest_embed": "Gerar embeddings vetoriais para busca",
     "welcome.menu.search_query": "Busca semantica + estruturada de licitacoes",
     "welcome.menu.orgs_load": "Carregar organizacoes a partir de CSV",
     "welcome.menu.orgs_match": "Combinar organizacoes com licitacoes relevantes",
@@ -18,7 +19,21 @@ STRINGS: dict[str, str] = {
     "welcome.menu.docs_analyze": "Analisar portais de fornecedores de documentos",
     "welcome.menu.docs_download": "Baixar documentos do portal de fornecedor",
     "welcome.menu.dashboard": "Monitorar jobs em background em tempo real",
+    "welcome.menu.tender_list": "Listar e inspecionar licitacoes armazenadas",
+    "welcome.menu.kill": "Cancelar jobs em background",
+    "welcome.menu.lang": "Alterar o idioma da CLI",
+    "welcome.menu.purge": "Excluir TODOS os dados (BD + MinIO + arquivos)",
     "welcome.help_desc": "Exibir todos os comandos e uso detalhado",
+
+    # ── Detailed help (tenderx help) ────────────────────────────
+    "help.detailed.title": "TenderX — Referencia de Comandos",
+    "help.detailed.section_ingest": "Ingestao",
+    "help.detailed.section_search": "Busca",
+    "help.detailed.section_orgs": "Organizacoes",
+    "help.detailed.section_docs": "Documentos",
+    "help.detailed.section_tender": "Licitacoes",
+    "help.detailed.section_system": "Sistema",
+    "help.detailed.footer": "[dim]Dica: execute qualquer comando com --help para detalhes completos (ex: tenderx ingest run --help)[/dim]",
 
     # ── Interactive Shell ──────────────────────────────────────
     "shell.hint": "Digite 'help' para ver os comandos, 'exit' para sair.",
@@ -37,12 +52,14 @@ STRINGS: dict[str, str] = {
     # ── Help texts — commands ──────────────────────────────────
     "help.cmd.ingest_run": "Ingerir licitacoes da API de compras publicas alema.",
     "help.cmd.ingest_enrich": "Executar enriquecimento com IA em licitacoes nao enriquecidas.",
-    "help.cmd.dashboard": "Monitorar jobs em background em tempo real.",
+    "help.cmd.ingest_embed": "Gerar embeddings vetoriais para licitacoes enriquecidas.",
+    "help.cmd.dashboard": "Monitorar jobs em background em tempo real. Exibe uma tabela live com barras de progresso de todos os jobs. Use --inspect <job-id> para detalhar um job específico.",
     "help.cmd.search_query": "Buscar licitacoes com filtros semanticos e estruturados.",
     "help.cmd.orgs_load": "Carregar organizacoes a partir de um arquivo CSV.",
     "help.cmd.orgs_match": "Executar correspondencia de licitacoes para organizacoes.",
     "help.cmd.docs_analyze": "Analisar portais de fornecedores de documentos.",
     "help.cmd.docs_download": "Baixar documentos de um portal de fornecedor.",
+    "help.cmd.tender_list": "Listar licitacoes com filtros opcionais.",
     "help.cmd.tender_show": "Exibir informacoes detalhadas sobre uma licitacao.",
     "help.cmd.stats": "Exibir estatisticas do sistema.",
     "help.cmd.purge": "Excluir TODOS os dados: registros do banco, objetos do MinIO e arquivos gerados.",
@@ -65,9 +82,12 @@ STRINGS: dict[str, str] = {
     "help.opt.tender_id": "UUID da licitacao",
     "help.opt.verbose": "Exibir descricoes detalhadas para cada metrica",
     "help.opt.yes": "Pular confirmacao",
+    "help.opt.enriched_only": "Exibir apenas licitacoes enriquecidas (com resumo IA)",
     "help.opt.lang_default": "Redefinir idioma para ingles (padrao)",
     "help.opt.bg": "Executar em background (sobrevive ao fechamento da CLI, monitore com 'tenderx dashboard')",
     "help.opt.enrich_bg": "Executar enriquecimento com IA em background apos ingestao",
+    "help.opt.gpu": "Ativar enriquecimento paralelo com GPU (10 simultaneos, requer GPU NVIDIA)",
+    "help.opt.archive": "Arquivar exports brutos da API no MinIO (padrao: ativado)",
 
     # ── Ingest ─────────────────────────────────────────────────
     "ingest.progress_date": "Ingerindo licitacoes para {date}...",
@@ -84,6 +104,11 @@ STRINGS: dict[str, str] = {
     ),
     "ingest.ollama_unavailable": "[yellow]Ollama nao disponivel \u2014 enriquecimento ignorado[/yellow]",
     "ingest.enrichment_skipped": "[yellow]Enriquecimento ignorado: {error}[/yellow]",
+    "ingest.ocds_enriching": "Enriquecendo URLs de documentos via OCDS...",
+    "ingest.ocds_result": "[green]OCDS:[/green] {updated} URLs enriquecidas, {not_found} nao encontradas",
+    "ingest.ocds_skipped": "[dim]Enriquecimento OCDS: dados indisponiveis[/dim]",
+    "ingest.archived_export": "[dim]Arquivado {fmt} para {date}[/dim]",
+    "ingest.archive_skipped": "[dim]Arquivamento de exports desativado[/dim]",
     "ingest.embeddings_running": "\nGerando embeddings...",
     "ingest.embeddings_result": "[green]Embeddings:[/green] {count} gerados",
     "ingest.embeddings_skipped": "[yellow]Embeddings ignorados: {error}[/yellow]",
@@ -99,6 +124,7 @@ STRINGS: dict[str, str] = {
     # ── Search ─────────────────────────────────────────────────
     "search.no_results": "[yellow]Nenhum resultado encontrado.[/yellow]",
     "search.table_title": "Resultados da Busca ({count})",
+    "search.col_id": "ID",
     "search.col_score": "Pontuacao",
     "search.col_title": "Titulo",
     "search.col_cpv": "CPV",
@@ -136,7 +162,7 @@ STRINGS: dict[str, str] = {
     "docs.download_done": (
         "\n[green]Concluido![/green] "
         "{tenders} licitacoes, {downloaded} baixados, "
-        "{failed} com falha, {bytes} bytes"
+        "{failed} com falha, {no_links} sem links, {bytes} bytes"
     ),
 
     # ── Tender show ────────────────────────────────────────────
@@ -152,10 +178,12 @@ STRINGS: dict[str, str] = {
     "tender.label_platform": "Plataforma:",
     "tender.label_docs_portal": "Portal de Docs:",
     "tender.label_ai_summary": "Resumo IA:",
+    "tender.label_embedding": "Embedding:",
     "tender.label_issuer": "Emissor:",
     "tender.label_contact": "Contato:",
     "tender.label_lots": "Lotes ({count}):",
     "tender.label_documents": "Documentos ({count}):",
+    "tender.list_title": "Licitacoes ({count})",
     "tender.untitled": "Sem titulo",
     "tender.unknown_type": "desconhecido",
 
@@ -250,12 +278,31 @@ STRINGS: dict[str, str] = {
     "dashboard.no_jobs": "[dim]Nenhum job em background encontrado. Inicie um com a flag --bg.[/dim]",
     "dashboard.exit_hint": "[dim]Pressione Ctrl+C para sair[/dim]",
     "dashboard.stale_detected": "[yellow]Detectado(s) {count} job(s) obsoleto(s) — marcado(s) como falho(s).[/yellow]",
+    "dashboard.inspect_title": "Inspecionar Job {job_id}",
+    "dashboard.inspect_not_found": "[red]Job {job_id} nao encontrado.[/red]",
+    "dashboard.inspect_status": "Status: {status}  |  Progresso: {progress}  |  Duracao: {duration}",
+    "dashboard.inspect_log_title": "Log do Worker (ultimas {lines} linhas)",
+    "dashboard.inspect_tenders_title": "Progresso por Tender",
+    "dashboard.inspect_no_state": "[dim]Estado por tender nao disponivel (modo sequencial ou job nao iniciado).[/dim]",
+    "dashboard.inspect_col_tender": "Tender ID",
+    "dashboard.inspect_col_title": "Titulo",
+    "dashboard.inspect_col_step": "Etapa",
+    "help.opt.inspect": "Detalhar um job pelo UUID completo ou parcial. Mostra barra de progresso live, etapas de enrichment por tender (summary/searchable/saving/done) e tail do log do worker. Aceita os primeiros 8 caracteres do ID.",
 
     # ── Background Jobs ───────────────────────────────────────
     "bg.job_started": "[green]Job {job_id} iniciado em background.[/green] Use [bold]tenderx dashboard[/bold] para monitorar.",
     "bg.job_type_enrichment": "Enriquecimento IA",
     "bg.job_type_docs_download": "Download de Docs",
+    "bg.job_type_embedding": "Geracao de Embeddings",
     "bg.enrich_started_bg": "[green]Job de enriquecimento {job_id} iniciado em background.[/green] Use [bold]tenderx dashboard[/bold] para monitorar.",
+    "bg.kill_all_confirm": "Cancelar [bold]{count}[/bold] job(s) ativo(s)?",
+    "bg.kill_all_done": "[green]{count} job(s) cancelado(s).[/green]",
+    "bg.kill_all_none": "[dim]Nenhum job ativo para cancelar.[/dim]",
+    "bg.kill_one_done": "[green]Job {job_id} cancelado.[/green]",
+    "bg.kill_one_not_found": "[red]Job {job_id} não encontrado.[/red]",
+    "bg.kill_one_not_active": "[yellow]Job {job_id} não está ativo (status: {status}).[/yellow]",
+    "help.cmd.kill": "Cancelar jobs em background (um por ID, ou --all).",
+    "help.opt.kill_all": "Cancelar todos os jobs ativos",
 
     # ── Common ─────────────────────────────────────────────────
     "common.db_unavailable": "[red]Banco de dados nao disponivel. Execute 'docker compose up -d' primeiro.[/red]",

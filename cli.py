@@ -95,13 +95,18 @@ def show_welcome_screen() -> None:
     menu_items = [
         ("tenderx ingest run", tr("welcome.menu.ingest_run")),
         ("tenderx ingest enrich", tr("welcome.menu.ingest_enrich")),
+        ("tenderx ingest embed", tr("welcome.menu.ingest_embed")),
         ("tenderx search query", tr("welcome.menu.search_query")),
         ("tenderx orgs load", tr("welcome.menu.orgs_load")),
         ("tenderx orgs match --all", tr("welcome.menu.orgs_match")),
-        ("tenderx stats", tr("welcome.menu.stats")),
+        ("tenderx tender list", tr("welcome.menu.tender_list")),
         ("tenderx docs analyze", tr("welcome.menu.docs_analyze")),
         ("tenderx docs download", tr("welcome.menu.docs_download")),
         ("tenderx dashboard", tr("welcome.menu.dashboard")),
+        ("tenderx kill --all", tr("welcome.menu.kill")),
+        ("tenderx stats", tr("welcome.menu.stats")),
+        ("tenderx lang", tr("welcome.menu.lang")),
+        ("tenderx purge", tr("welcome.menu.purge")),
     ]
 
     max_cmd_len = max(len(cmd) for cmd, _ in menu_items)
@@ -180,11 +185,255 @@ def _show_language_menu(force: bool = False) -> str | None:
 _in_shell = False
 
 
+def _show_detailed_help() -> None:
+    """Show a rich, detailed help screen with all commands, options, and examples."""
+    console.print()
+    console.print(
+        Rule(tr("help.detailed.title"), style="bold bright_blue")
+    )
+    console.print()
+
+    sections = [
+        (
+            tr("help.detailed.section_ingest"),
+            [
+                (
+                    "tenderx ingest run",
+                    tr("help.cmd.ingest_run"),
+                    [
+                        ("--days N", tr("help.opt.days") + " [dim](default: 7)[/dim]"),
+                        ("--date YYYY-MM-DD", tr("help.opt.date")),
+                        ("--enrich / --no-enrich", tr("help.opt.enrich") + " [dim](default: on)[/dim]"),
+                        ("--enrich-bg", tr("help.opt.enrich_bg")),
+                        ("--archive / --no-archive", tr("help.opt.archive")),
+                        ("--gpu", tr("help.opt.gpu")),
+                    ],
+                    [
+                        "tenderx ingest run",
+                        "tenderx ingest run --days 3",
+                        "tenderx ingest run --date 2026-03-01 --enrich-bg",
+                        "tenderx ingest run --no-enrich --days 14",
+                        "tenderx ingest run --gpu",
+                    ],
+                ),
+                (
+                    "tenderx ingest enrich",
+                    tr("help.cmd.ingest_enrich"),
+                    [
+                        ("--bg", tr("help.opt.bg")),
+                        ("--gpu", tr("help.opt.gpu")),
+                    ],
+                    [
+                        "tenderx ingest enrich",
+                        "tenderx ingest enrich --gpu",
+                        "tenderx ingest enrich --bg --gpu",
+                    ],
+                ),
+                (
+                    "tenderx ingest embed",
+                    tr("help.cmd.ingest_embed"),
+                    [
+                        ("--limit N", tr("help.opt.limit") + " [dim](default: 500)[/dim]"),
+                        ("--bg", tr("help.opt.bg")),
+                    ],
+                    [
+                        "tenderx ingest embed",
+                        "tenderx ingest embed --limit 200",
+                        "tenderx ingest embed --bg",
+                    ],
+                ),
+            ],
+        ),
+        (
+            tr("help.detailed.section_search"),
+            [
+                (
+                    "tenderx search query",
+                    tr("help.cmd.search_query"),
+                    [
+                        ("<query>", tr("help.opt.query_text")),
+                        ("--cpv CODE", tr("help.opt.cpv")),
+                        ("--nuts CODE", tr("help.opt.nuts")),
+                        ("--min-value N", tr("help.opt.min_value")),
+                        ("--max-value N", tr("help.opt.max_value")),
+                        ("--limit N", tr("help.opt.limit") + " [dim](default: 20)[/dim]"),
+                    ],
+                    [
+                        'tenderx search query "IT consulting"',
+                        "tenderx search query --cpv 72000000 --nuts DE212",
+                        'tenderx search query "construction" --max-value 500000',
+                    ],
+                ),
+            ],
+        ),
+        (
+            tr("help.detailed.section_orgs"),
+            [
+                (
+                    "tenderx orgs load",
+                    tr("help.cmd.orgs_load"),
+                    [
+                        ("--csv PATH", tr("help.opt.csv_path") + " [dim](default: organizations.csv)[/dim]"),
+                    ],
+                    [
+                        "tenderx orgs load",
+                        "tenderx orgs load --csv my_companies.csv",
+                    ],
+                ),
+                (
+                    "tenderx orgs match",
+                    tr("help.cmd.orgs_match"),
+                    [
+                        ("--org-id UUID", tr("help.opt.org_id")),
+                        ("--all", tr("help.opt.all_orgs")),
+                    ],
+                    [
+                        "tenderx orgs match --all",
+                        "tenderx orgs match --org-id 3fa85f64-5717-...",
+                    ],
+                ),
+            ],
+        ),
+        (
+            tr("help.detailed.section_docs"),
+            [
+                (
+                    "tenderx docs analyze",
+                    tr("help.cmd.docs_analyze"),
+                    [],
+                    ["tenderx docs analyze"],
+                ),
+                (
+                    "tenderx docs download",
+                    tr("help.cmd.docs_download"),
+                    [
+                        ("--supplier DOMAIN", tr("help.opt.supplier") + " [dim](required)[/dim]"),
+                        ("--limit N", tr("help.opt.limit") + " [dim](default: 100)[/dim]"),
+                        ("--bg", tr("help.opt.bg")),
+                    ],
+                    [
+                        "tenderx docs download --supplier vergabe.rlp.de",
+                        "tenderx docs download --supplier evergabe.de --limit 50 --bg",
+                    ],
+                ),
+            ],
+        ),
+        (
+            tr("help.detailed.section_tender"),
+            [
+                (
+                    "tenderx tender list",
+                    tr("help.cmd.tender_list"),
+                    [
+                        ("--enriched", tr("help.opt.enriched_only")),
+                        ("--limit N", tr("help.opt.limit") + " [dim](default: 20)[/dim]"),
+                    ],
+                    [
+                        "tenderx tender list",
+                        "tenderx tender list --enriched --limit 10",
+                    ],
+                ),
+                (
+                    "tenderx tender show",
+                    tr("help.cmd.tender_show"),
+                    [
+                        ("<uuid>", tr("help.opt.tender_id") + " [dim](required)[/dim]"),
+                    ],
+                    [
+                        "tenderx tender show 87b9a2d9-d46e-4099-8139-22fe33e42f06",
+                    ],
+                ),
+            ],
+        ),
+        (
+            tr("help.detailed.section_system"),
+            [
+                (
+                    "tenderx stats",
+                    tr("help.cmd.stats"),
+                    [
+                        ("--verbose / -v", tr("help.opt.verbose")),
+                    ],
+                    ["tenderx stats", "tenderx stats --verbose"],
+                ),
+                (
+                    "tenderx dashboard",
+                    tr("help.cmd.dashboard"),
+                    [],
+                    ["tenderx dashboard"],
+                ),
+                (
+                    "tenderx kill",
+                    tr("help.cmd.kill"),
+                    [
+                        ("<job-id>", tr("help.opt.tender_id")),
+                        ("--all", tr("help.opt.kill_all")),
+                    ],
+                    [
+                        "tenderx kill --all",
+                        "tenderx kill 3cbe1c85-...",
+                    ],
+                ),
+                (
+                    "tenderx lang",
+                    tr("help.cmd.lang"),
+                    [
+                        ("--default / -d", tr("help.opt.lang_default")),
+                    ],
+                    ["tenderx lang", "tenderx lang --default"],
+                ),
+                (
+                    "tenderx purge",
+                    tr("help.cmd.purge"),
+                    [
+                        ("--yes / -y", tr("help.opt.yes")),
+                    ],
+                    ["tenderx purge", "tenderx purge --yes"],
+                ),
+            ],
+        ),
+    ]
+
+    for section_title, commands in sections:
+        console.print(f"  [bold bright_blue]{section_title}[/bold bright_blue]")
+        console.print()
+
+        for cmd_name, cmd_desc, options, examples in commands:
+            console.print(f"    [bold]{cmd_name}[/bold]")
+            console.print(f"    {cmd_desc}")
+
+            if options:
+                for opt_name, opt_desc in options:
+                    console.print(f"      [green]{opt_name:<24}[/green] {opt_desc}")
+
+            if examples:
+                console.print(f"      [dim]{'-' * 50}[/dim]")
+                for ex in examples:
+                    console.print(f"      [yellow]$ {ex}[/yellow]")
+
+            console.print()
+
+    console.print(tr("help.detailed.footer"))
+    console.print()
+
+
 @app.callback(invoke_without_command=True)
-def main(ctx: typer.Context) -> None:
+def main(
+    ctx: typer.Context,
+    help_flag: bool = typer.Option(False, "--help", "-h", is_eager=True, help="Show detailed command reference"),
+) -> None:
     """German Tenders Intelligence Platform."""
+    if help_flag:
+        _show_detailed_help()
+        raise typer.Exit()
     if ctx.invoked_subcommand is None and not _in_shell:
         show_welcome_screen()
+
+
+@app.command("help", hidden=True)
+def help_command() -> None:
+    """Show detailed command reference."""
+    _show_detailed_help()
 
 
 def _run_command(args: list[str]) -> None:
@@ -214,7 +463,13 @@ def interactive_shell() -> None:
     Shows a welcome screen, then loops reading commands from the user
     until 'exit' or 'quit' is entered.  Each command is dispatched to
     the Typer app as if it were typed on the command line.
+
+    Supports command history via arrow keys (up/down).
     """
+    from prompt_toolkit import PromptSession
+    from prompt_toolkit.formatted_text import ANSI
+    from prompt_toolkit.history import InMemoryHistory
+
     global _in_shell
     _in_shell = True
 
@@ -226,11 +481,13 @@ def interactive_shell() -> None:
 
     console.print(f"[dim]  {tr('shell.hint')}[/dim]\n")
 
+    history = InMemoryHistory()
+    session: PromptSession[str] = PromptSession(history=history)
+    prompt_text = ANSI("\x1b[1;94mtenderx\x1b[0m > ")
+
     while True:
         try:
-            user_input = console.input(
-                "[bold bright_blue]tenderx[/bold bright_blue] > "
-            ).strip()
+            user_input = session.prompt(prompt_text).strip()
         except EOFError:
             console.print()
             break
@@ -248,7 +505,7 @@ def interactive_shell() -> None:
             console.clear()
             continue
         if lower == "help":
-            _run_command(["--help"])
+            _show_detailed_help()
             continue
 
         try:
@@ -308,12 +565,14 @@ def ingest_run(
     date_str: str = typer.Option(None, "--date", help=tr("help.opt.date")),
     enrich: bool = typer.Option(True, help=tr("help.opt.enrich")),
     enrich_bg: bool = typer.Option(False, "--enrich-bg", help=tr("help.opt.enrich_bg")),
+    archive: bool = typer.Option(True, "--archive/--no-archive", help=tr("help.opt.archive")),
+    gpu: bool = typer.Option(False, "--gpu", help=tr("help.opt.gpu")),
 ) -> None:
     """Ingest tenders from the German procurement API."""
     from src.ingestion.tender_pipeline import TenderPipeline
 
     async def _run() -> None:
-        pipeline = TenderPipeline()
+        pipeline = TenderPipeline(archive_exports=archive)
         if date_str:
             target = date.fromisoformat(date_str)
             console.print(tr("ingest.progress_date", date=target))
@@ -331,11 +590,27 @@ def ingest_run(
                duration=f"{result.duration_seconds:.1f}")
         )
 
+        # Show OCDS enrichment stats
+        if result.ocds_urls_updated > 0:
+            console.print(
+                tr("ingest.ocds_result",
+                   updated=result.ocds_urls_updated,
+                   not_found=0)
+            )
+
+        # Show archival stats
+        if result.exports_archived > 0:
+            console.print(
+                tr("ingest.archived_export",
+                   fmt=f"{result.exports_archived} export(s)",
+                   date="batch")
+            )
+
         # If --enrich-bg, spawn background enrichment job instead of inline
         if enrich_bg:
             from src.background.manager import BackgroundJobManager
             manager = BackgroundJobManager()
-            job_id = await manager.create_job("enrichment", {})
+            job_id = await manager.create_job("enrichment", {"gpu": gpu})
             manager.spawn_worker(job_id)
             short_id = str(job_id)[:8]
             console.print(tr("bg.enrich_started_bg", job_id=short_id))
@@ -345,11 +620,12 @@ def ingest_run(
             try:
                 from src.ingestion.enrichment import EnrichmentPipeline
                 from src.ai.llm_client import OllamaClient
+                from src.config import settings
 
-                client = OllamaClient()
+                client = OllamaClient(model=settings.ollama_model_fast)
                 if await client.is_available():
                     console.print(tr("ingest.enrichment_running"))
-                    ep = EnrichmentPipeline(client)
+                    ep = EnrichmentPipeline(client, gpu=gpu)
                     er = await ep.run()
                     console.print(
                         tr("ingest.enrichment_result",
@@ -383,13 +659,14 @@ def ingest_run(
 @ingest_app.command("enrich", help=tr("help.cmd.ingest_enrich"))
 def ingest_enrich(
     bg: bool = typer.Option(False, "--bg", help=tr("help.opt.bg")),
+    gpu: bool = typer.Option(False, "--gpu", help=tr("help.opt.gpu")),
 ) -> None:
     """Run AI enrichment on unenriched tenders."""
     if bg:
         async def _bg() -> None:
             from src.background.manager import BackgroundJobManager
             manager = BackgroundJobManager()
-            job_id = await manager.create_job("enrichment", {})
+            job_id = await manager.create_job("enrichment", {"gpu": gpu})
             manager.spawn_worker(job_id)
             short_id = str(job_id)[:8]
             console.print(tr("bg.job_started", job_id=short_id))
@@ -403,14 +680,15 @@ def ingest_enrich(
     async def _run() -> None:
         from src.ingestion.enrichment import EnrichmentPipeline
         from src.ai.llm_client import OllamaClient
+        from src.config import settings
 
-        client = OllamaClient()
+        client = OllamaClient(model=settings.ollama_model_fast)
         if not await client.is_available():
             console.print(tr("ingest.enrich_ollama_unavailable"))
             return
 
         console.print(tr("ingest.enrich_running"))
-        ep = EnrichmentPipeline(client)
+        ep = EnrichmentPipeline(client, gpu=gpu)
         result = await ep.run()
         console.print(
             tr("ingest.enrich_done",
@@ -419,6 +697,40 @@ def ingest_enrich(
                skipped=result.skipped,
                duration=f"{result.duration_seconds:.1f}")
         )
+
+    try:
+        asyncio.run(_run())
+    except Exception as exc:
+        console.print(tr("common.error", error=exc))
+
+
+@ingest_app.command("embed", help=tr("help.cmd.ingest_embed"))
+def ingest_embed(
+    bg: bool = typer.Option(False, "--bg", help=tr("help.opt.bg")),
+    limit: int = typer.Option(500, "--limit", help=tr("help.opt.limit")),
+) -> None:
+    """Generate embeddings for enriched tenders."""
+    if bg:
+        async def _bg() -> None:
+            from src.background.manager import BackgroundJobManager
+            manager = BackgroundJobManager()
+            job_id = await manager.create_job("embedding", {"limit": limit})
+            manager.spawn_worker(job_id)
+            short_id = str(job_id)[:8]
+            console.print(tr("bg.job_started", job_id=short_id))
+
+        try:
+            asyncio.run(_bg())
+        except Exception as exc:
+            console.print(tr("common.error", error=exc))
+        return
+
+    async def _run() -> None:
+        from src.search.embeddings import generate_tender_embeddings
+
+        console.print(tr("ingest.embeddings_running"))
+        count = await generate_tender_embeddings(limit=limit)
+        console.print(tr("ingest.embeddings_result", count=count))
 
     try:
         asyncio.run(_run())
@@ -463,6 +775,7 @@ def search_query(
             return
 
         table = Table(title=tr("search.table_title", count=len(results)))
+        table.add_column(tr("search.col_id"), width=38)
         table.add_column(tr("search.col_score"), width=6)
         table.add_column(tr("search.col_title"), max_width=60)
         table.add_column(tr("search.col_cpv"), width=12)
@@ -471,11 +784,12 @@ def search_query(
 
         for r in results:
             tender = r.tender
+            full_id = str(tender.id)
             score = f"{r.semantic_score:.3f}" if r.semantic_score else "-"
             cpv_str = ", ".join((tender.cpv_codes or [])[:2])
             value = f"{tender.estimated_value:,.0f} {tender.currency}" if tender.estimated_value else "-"
             deadline = tender.submission_deadline.strftime("%Y-%m-%d") if tender.submission_deadline else "-"
-            table.add_row(score, tender.title[:60], cpv_str, value, deadline)
+            table.add_row(full_id, score, tender.title[:60], cpv_str, value, deadline)
 
         console.print(table)
 
@@ -658,6 +972,7 @@ def docs_download(
                tenders=result.tenders_processed,
                downloaded=result.documents_downloaded,
                failed=result.documents_failed,
+               no_links=result.tenders_no_links,
                bytes=f"{result.total_bytes:,}")
         )
 
@@ -672,6 +987,54 @@ def docs_download(
 # ============================================================
 # TENDER commands
 # ============================================================
+
+@tender_app.command("list", help=tr("help.cmd.tender_list"))
+def tender_list(
+    enriched: bool = typer.Option(False, "--enriched", help=tr("help.opt.enriched_only")),
+    limit: int = typer.Option(20, help=tr("help.opt.limit")),
+) -> None:
+    """List tenders with optional filters."""
+    async def _run() -> None:
+        from sqlalchemy import select, func
+        from src.db.models import Tender
+        from src.db.session import get_session
+
+        async with get_session() as session:
+            stmt = select(Tender).order_by(Tender.publication_date.desc().nulls_last())
+            if enriched:
+                stmt = stmt.where(Tender.ai_summary.isnot(None))
+            stmt = stmt.limit(limit)
+            result = await session.execute(stmt)
+            tenders = list(result.scalars().all())
+
+        if not tenders:
+            console.print(tr("search.no_results"))
+            return
+
+        table = Table(title=tr("tender.list_title", count=len(tenders)), expand=True)
+        table.add_column("ID", width=38)
+        table.add_column(tr("search.col_title"), ratio=3)
+        table.add_column(tr("search.col_cpv"), width=12)
+        table.add_column(tr("search.col_deadline"), width=12)
+        table.add_column(tr("tender.label_ai_summary").rstrip(":"), ratio=2)
+
+        for t in tenders:
+            full_id = str(t.id)
+            title = (t.title or "-")[:60]
+            cpv = ", ".join((t.cpv_codes or [])[:2])
+            deadline = str(t.submission_deadline.date()) if t.submission_deadline else "-"
+            summary = (t.ai_summary or "[dim]-[/dim]")[:80]
+            table.add_row(full_id, title, cpv, deadline, summary)
+
+        console.print(table)
+
+    try:
+        asyncio.run(_run())
+    except ConnectionRefusedError:
+        console.print(tr("common.db_unavailable"))
+    except Exception as exc:
+        console.print(tr("common.error", error=exc))
+
 
 @tender_app.command("show", help=tr("help.cmd.tender_show"))
 def tender_show(
@@ -707,6 +1070,9 @@ def tender_show(
 
         if tender.ai_summary:
             lines.append(f"\n[bold]{tr('tender.label_ai_summary')}[/bold] {tender.ai_summary}")
+
+        embed_status = "[green]Yes (384-dim)[/green]" if tender.embedding is not None else "[dim]No[/dim]"
+        lines.append(f"[bold]{tr('tender.label_embedding')}[/bold] {embed_status}")
 
         if tender.issuer:
             lines.append(f"\n[bold]{tr('tender.label_issuer')}[/bold] {tender.issuer.name}")
@@ -787,6 +1153,7 @@ def _build_dashboard_table(jobs: list) -> Table:
     job_type_labels = {
         "enrichment": tr("bg.job_type_enrichment"),
         "docs_download": tr("bg.job_type_docs_download"),
+        "embedding": tr("bg.job_type_embedding"),
     }
 
     table = Table(title=tr("dashboard.title"), expand=True)
@@ -818,9 +1185,83 @@ def _build_dashboard_table(jobs: list) -> Table:
     return table
 
 
+def _build_inspect_view(job, log_lines: list[str], tender_states: dict):
+    """Build the Rich renderable for the inspect view."""
+    # Main info panel
+    progress = _progress_bar(job.progress_current, job.progress_total)
+    duration = _format_duration(job.started_at, job.completed_at)
+    status_line = tr(
+        "dashboard.inspect_status",
+        status=_status_style(job.status),
+        progress=progress,
+        duration=duration,
+    )
+
+    # Build a group of renderables
+    parts: list = []
+    parts.append(Text(tr("dashboard.inspect_title", job_id=str(job.id)[:8]), style="bold"))
+    parts.append(Text.from_markup(status_line))
+    parts.append(Text(""))
+
+    # Per-tender state table (for enrichment jobs)
+    if tender_states:
+        step_styles = {
+            "pending": "dim",
+            "summary": "yellow",
+            "searchable": "bright_blue",
+            "saving": "cyan",
+            "done": "green",
+            "failed": "red",
+        }
+        tender_table = Table(
+            title=tr("dashboard.inspect_tenders_title"),
+            expand=True,
+            show_lines=False,
+        )
+        tender_table.add_column(tr("dashboard.inspect_col_tender"), width=10)
+        tender_table.add_column(tr("dashboard.inspect_col_title"), ratio=1)
+        tender_table.add_column(tr("dashboard.inspect_col_step"), width=14)
+
+        for tid, state in tender_states.items():
+            step = state.get("status", "?")
+            color = step_styles.get(step, "white")
+            step_display = f"[{color}]{step}[/{color}]"
+            tender_table.add_row(
+                tid[:8],
+                (state.get("title", "")[:60] or "-"),
+                step_display,
+            )
+        parts.append(tender_table)
+    elif job.job_type == "enrichment":
+        parts.append(Text.from_markup(tr("dashboard.inspect_no_state")))
+
+    parts.append(Text(""))
+
+    # Log tail
+    log_count = len(log_lines)
+    parts.append(
+        Text(
+            tr("dashboard.inspect_log_title", lines=log_count),
+            style="bold dim",
+        )
+    )
+    for line in log_lines:
+        parts.append(Text(line.rstrip(), overflow="ellipsis", no_wrap=True))
+
+    # Wrap everything in a single group
+    from rich.console import Group
+    return Group(*parts)
+
+
 @app.command("dashboard", help=tr("help.cmd.dashboard"))
-def dashboard() -> None:
+def dashboard(
+    inspect_id: str = typer.Option(None, "--inspect", help=tr("help.opt.inspect")),
+) -> None:
     """Monitor background jobs in real time."""
+    if inspect_id:
+        _dashboard_inspect(inspect_id)
+        return
+
     async def _get_jobs() -> list:
         from src.background.manager import BackgroundJobManager
         manager = BackgroundJobManager()
@@ -866,6 +1307,180 @@ def dashboard() -> None:
                 time.sleep(1.5)
     except KeyboardInterrupt:
         console.print()
+
+
+def _dashboard_inspect(inspect_id: str) -> None:
+    """Inspect a single background job: logs + per-tender progress."""
+    import json as json_mod
+    from pathlib import Path
+    from uuid import UUID
+
+    from src.db.session import reset_engine
+
+    try:
+        job_uuid = UUID(inspect_id)
+    except ValueError:
+        # Try partial match
+        job_uuid = None
+
+    async def _find_job():
+        from src.background.manager import BackgroundJobManager
+        manager = BackgroundJobManager()
+        jobs = await manager.list_jobs()
+        if job_uuid:
+            return next((j for j in jobs if j.id == job_uuid), None)
+        # Partial match on first 8 chars
+        return next((j for j in jobs if str(j.id).startswith(inspect_id)), None)
+
+    try:
+        job = asyncio.run(_find_job())
+    except ConnectionRefusedError:
+        console.print(tr("common.db_unavailable"))
+        return
+    except Exception as exc:
+        console.print(tr("common.error", error=exc))
+        return
+
+    if not job:
+        console.print(tr("dashboard.inspect_not_found", job_id=inspect_id))
+        return
+
+    log_dir = Path(__file__).resolve().parent / "data" / "logs"
+    log_file = log_dir / f"worker-{job.id}.log"
+    state_file = log_dir / f"worker-{job.id}.state"
+
+    def _read_log_tail(max_lines: int = 30) -> list[str]:
+        if not log_file.exists():
+            return []
+        try:
+            lines = log_file.read_text(encoding="utf-8", errors="replace").splitlines()
+            return lines[-max_lines:]
+        except Exception:
+            return []
+
+    def _read_tender_states() -> dict:
+        if not state_file.exists():
+            return {}
+        try:
+            return json_mod.loads(state_file.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+
+    is_active = job.status in ("pending", "running")
+
+    if not is_active:
+        # Static display for completed/failed jobs
+        log_lines = _read_log_tail(50)
+        tender_states = _read_tender_states()
+        console.print(_build_inspect_view(job, log_lines, tender_states))
+        return
+
+    # Live refresh for active jobs
+    console.print(tr("dashboard.exit_hint"))
+    try:
+        with Live(console=console, refresh_per_second=1) as live:
+            while True:
+                reset_engine()
+                job = asyncio.run(_find_job())
+                if not job:
+                    break
+                log_lines = _read_log_tail(30)
+                tender_states = _read_tender_states()
+                live.update(_build_inspect_view(job, log_lines, tender_states))
+
+                if job.status not in ("pending", "running"):
+                    # One final refresh then stop
+                    time.sleep(1)
+                    log_lines = _read_log_tail(30)
+                    tender_states = _read_tender_states()
+                    live.update(_build_inspect_view(job, log_lines, tender_states))
+                    break
+                time.sleep(1)
+    except KeyboardInterrupt:
+        console.print()
+
+
+# ============================================================
+# KILL command
+# ============================================================
+
+@app.command("kill", help=tr("help.cmd.kill"))
+def kill_jobs(
+    job_id: str = typer.Argument(None, help=tr("help.opt.tender_id")),
+    all_jobs: bool = typer.Option(False, "--all", help=tr("help.opt.kill_all")),
+) -> None:
+    """Cancel one or all active background jobs."""
+    from src.background.manager import BackgroundJobManager
+    from uuid import UUID
+
+    manager = BackgroundJobManager()
+
+    if not job_id and not all_jobs:
+        console.print(tr("bg.kill_all_none"))
+        console.print("[dim]Usage: tenderx kill <job-id> or tenderx kill --all[/dim]")
+        return
+
+    if all_jobs:
+        async def _kill_all() -> int:
+            active = await manager.list_jobs()
+            active = [j for j in active if j.status in ("pending", "running")]
+            if not active:
+                return 0
+            for job in active:
+                await manager.cancel_job(job.id)
+            return len(active)
+
+        try:
+            count = asyncio.run(_kill_all())
+        except ConnectionRefusedError:
+            console.print(tr("common.db_unavailable"))
+            return
+        except Exception as exc:
+            console.print(tr("common.error", error=exc))
+            return
+
+        if count == 0:
+            console.print(tr("bg.kill_all_none"))
+        else:
+            console.print(tr("bg.kill_all_done", count=count))
+        return
+
+    # Kill a single job by ID
+    try:
+        uid = UUID(job_id)
+    except ValueError:
+        console.print(tr("bg.kill_one_not_found", job_id=job_id))
+        return
+
+    async def _kill_one() -> str | None:
+        """Returns None on success, or a status string if not active."""
+        async with get_session() as session:
+            from src.db.repositories import BackgroundJobRepository
+            repo = BackgroundJobRepository(session)
+            job = await repo.find_by_id(uid)
+            if not job:
+                return "not_found"
+            if job.status not in ("pending", "running"):
+                return job.status
+        await manager.cancel_job(uid)
+        return None
+
+    try:
+        result = asyncio.run(_kill_one())
+    except ConnectionRefusedError:
+        console.print(tr("common.db_unavailable"))
+        return
+    except Exception as exc:
+        console.print(tr("common.error", error=exc))
+        return
+
+    short_id = str(uid)[:8]
+    if result == "not_found":
+        console.print(tr("bg.kill_one_not_found", job_id=short_id))
+    elif result is not None:
+        console.print(tr("bg.kill_one_not_active", job_id=short_id, status=result))
+    else:
+        console.print(tr("bg.kill_one_done", job_id=short_id))
 
 
 # ============================================================

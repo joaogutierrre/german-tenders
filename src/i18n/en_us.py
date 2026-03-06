@@ -11,6 +11,7 @@ STRINGS: dict[str, str] = {
     "welcome.quick_start": "Quick Start",
     "welcome.menu.ingest_run": "Ingest tenders from the procurement API",
     "welcome.menu.ingest_enrich": "Run AI enrichment on stored tenders",
+    "welcome.menu.ingest_embed": "Generate vector embeddings for search",
     "welcome.menu.search_query": "Semantic + structured tender search",
     "welcome.menu.orgs_load": "Load organizations from CSV",
     "welcome.menu.orgs_match": "Match organizations to relevant tenders",
@@ -18,7 +19,21 @@ STRINGS: dict[str, str] = {
     "welcome.menu.docs_analyze": "Analyze document supplier portals",
     "welcome.menu.docs_download": "Download documents from supplier portal",
     "welcome.menu.dashboard": "Monitor background jobs in real time",
+    "welcome.menu.tender_list": "List and inspect stored tenders",
+    "welcome.menu.kill": "Cancel background jobs",
+    "welcome.menu.lang": "Change the CLI language",
+    "welcome.menu.purge": "Delete ALL data (DB + MinIO + files)",
     "welcome.help_desc": "Show all commands and detailed usage",
+
+    # ── Detailed help (tenderx help) ────────────────────────────
+    "help.detailed.title": "TenderX — Command Reference",
+    "help.detailed.section_ingest": "Ingestion",
+    "help.detailed.section_search": "Search",
+    "help.detailed.section_orgs": "Organizations",
+    "help.detailed.section_docs": "Documents",
+    "help.detailed.section_tender": "Tenders",
+    "help.detailed.section_system": "System",
+    "help.detailed.footer": "[dim]Tip: run any command with --help for full option details (e.g. tenderx ingest run --help)[/dim]",
 
     # ── Interactive Shell ──────────────────────────────────────
     "shell.hint": "Type 'help' for commands, 'exit' to quit.",
@@ -37,12 +52,14 @@ STRINGS: dict[str, str] = {
     # ── Help texts — commands ──────────────────────────────────
     "help.cmd.ingest_run": "Ingest tenders from the German procurement API.",
     "help.cmd.ingest_enrich": "Run AI enrichment on unenriched tenders.",
-    "help.cmd.dashboard": "Monitor background jobs in real time.",
+    "help.cmd.ingest_embed": "Generate vector embeddings for enriched tenders.",
+    "help.cmd.dashboard": "Monitor background jobs in real time. Shows a live table with progress bars for all jobs. Use --inspect <job-id> to drill into a specific job.",
     "help.cmd.search_query": "Search tenders with semantic and structured filters.",
     "help.cmd.orgs_load": "Load organizations from a CSV file.",
     "help.cmd.orgs_match": "Run tender matching for organizations.",
     "help.cmd.docs_analyze": "Analyze document supplier portals.",
     "help.cmd.docs_download": "Download documents from a supplier portal.",
+    "help.cmd.tender_list": "List tenders with optional filters.",
     "help.cmd.tender_show": "Show detailed information about a tender.",
     "help.cmd.stats": "Show system statistics.",
     "help.cmd.purge": "Delete ALL data: database rows, MinIO objects, and generated files.",
@@ -65,9 +82,12 @@ STRINGS: dict[str, str] = {
     "help.opt.tender_id": "Tender UUID",
     "help.opt.verbose": "Show detailed descriptions for each metric",
     "help.opt.yes": "Skip confirmation prompt",
+    "help.opt.enriched_only": "Show only enriched tenders (with AI summary)",
     "help.opt.lang_default": "Reset language to English (default)",
     "help.opt.bg": "Run in background (survives CLI exit, monitor with 'tenderx dashboard')",
     "help.opt.enrich_bg": "Run AI enrichment in background after ingestion",
+    "help.opt.gpu": "Enable GPU-accelerated parallel enrichment (10 concurrent, requires NVIDIA GPU)",
+    "help.opt.archive": "Archive raw API exports to MinIO (default: enabled)",
 
     # ── Ingest ─────────────────────────────────────────────────
     "ingest.progress_date": "Ingesting tenders for {date}...",
@@ -84,6 +104,11 @@ STRINGS: dict[str, str] = {
     ),
     "ingest.ollama_unavailable": "[yellow]Ollama not available \u2014 skipping enrichment[/yellow]",
     "ingest.enrichment_skipped": "[yellow]Enrichment skipped: {error}[/yellow]",
+    "ingest.ocds_enriching": "Enriching document URLs from OCDS...",
+    "ingest.ocds_result": "[green]OCDS:[/green] {updated} URLs enriched, {not_found} not matched",
+    "ingest.ocds_skipped": "[dim]OCDS enrichment: no data available[/dim]",
+    "ingest.archived_export": "[dim]Archived {fmt} for {date}[/dim]",
+    "ingest.archive_skipped": "[dim]Export archival disabled[/dim]",
     "ingest.embeddings_running": "\nGenerating embeddings...",
     "ingest.embeddings_result": "[green]Embeddings:[/green] {count} generated",
     "ingest.embeddings_skipped": "[yellow]Embeddings skipped: {error}[/yellow]",
@@ -99,6 +124,7 @@ STRINGS: dict[str, str] = {
     # ── Search ─────────────────────────────────────────────────
     "search.no_results": "[yellow]No results found.[/yellow]",
     "search.table_title": "Search Results ({count})",
+    "search.col_id": "ID",
     "search.col_score": "Score",
     "search.col_title": "Title",
     "search.col_cpv": "CPV",
@@ -136,7 +162,7 @@ STRINGS: dict[str, str] = {
     "docs.download_done": (
         "\n[green]Done![/green] "
         "{tenders} tenders, {downloaded} downloaded, "
-        "{failed} failed, {bytes} bytes"
+        "{failed} failed, {no_links} no links, {bytes} bytes"
     ),
 
     # ── Tender show ────────────────────────────────────────────
@@ -152,10 +178,12 @@ STRINGS: dict[str, str] = {
     "tender.label_platform": "Platform:",
     "tender.label_docs_portal": "Docs Portal:",
     "tender.label_ai_summary": "AI Summary:",
+    "tender.label_embedding": "Embedding:",
     "tender.label_issuer": "Issuer:",
     "tender.label_contact": "Contact:",
     "tender.label_lots": "Lots ({count}):",
     "tender.label_documents": "Documents ({count}):",
+    "tender.list_title": "Tenders ({count})",
     "tender.untitled": "Untitled",
     "tender.unknown_type": "unknown",
 
@@ -250,12 +278,31 @@ STRINGS: dict[str, str] = {
     "dashboard.no_jobs": "[dim]No background jobs found. Start one with --bg flag.[/dim]",
     "dashboard.exit_hint": "[dim]Press Ctrl+C to exit[/dim]",
     "dashboard.stale_detected": "[yellow]Detected {count} stale job(s) — marked as failed.[/yellow]",
+    "dashboard.inspect_title": "Inspect Job {job_id}",
+    "dashboard.inspect_not_found": "[red]Job {job_id} not found.[/red]",
+    "dashboard.inspect_status": "Status: {status}  |  Progress: {progress}  |  Duration: {duration}",
+    "dashboard.inspect_log_title": "Worker Log (last {lines} lines)",
+    "dashboard.inspect_tenders_title": "Per-Tender Progress",
+    "dashboard.inspect_no_state": "[dim]No per-tender state available (sequential mode or job not started yet).[/dim]",
+    "dashboard.inspect_col_tender": "Tender ID",
+    "dashboard.inspect_col_title": "Title",
+    "dashboard.inspect_col_step": "Step",
+    "help.opt.inspect": "Drill into a specific job by full or partial UUID. Shows live progress bar, per-tender enrichment steps (summary/searchable/saving/done), and a tail of the worker log. Accepts the first 8 characters of a job ID.",
 
     # ── Background Jobs ───────────────────────────────────────
     "bg.job_started": "[green]Job {job_id} started in background.[/green] Use [bold]tenderx dashboard[/bold] to monitor.",
     "bg.job_type_enrichment": "AI Enrichment",
     "bg.job_type_docs_download": "Docs Download",
+    "bg.job_type_embedding": "Embedding Generation",
     "bg.enrich_started_bg": "[green]Enrichment job {job_id} started in background.[/green] Use [bold]tenderx dashboard[/bold] to monitor.",
+    "bg.kill_all_confirm": "Cancel [bold]{count}[/bold] active job(s)?",
+    "bg.kill_all_done": "[green]Cancelled {count} job(s).[/green]",
+    "bg.kill_all_none": "[dim]No active jobs to cancel.[/dim]",
+    "bg.kill_one_done": "[green]Job {job_id} cancelled.[/green]",
+    "bg.kill_one_not_found": "[red]Job {job_id} not found.[/red]",
+    "bg.kill_one_not_active": "[yellow]Job {job_id} is not active (status: {status}).[/yellow]",
+    "help.cmd.kill": "Cancel background jobs (one by ID, or --all).",
+    "help.opt.kill_all": "Cancel all active jobs",
 
     # ── Common ─────────────────────────────────────────────────
     "common.db_unavailable": "[red]Database not available. Run 'docker compose up -d' first.[/red]",
